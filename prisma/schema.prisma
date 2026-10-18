@@ -1,0 +1,1004 @@
+// WEBSTER data model.
+// Sections: identity & settings · IP knowledge graph · production & assets ·
+// engine (workflows, jobs, metering) · approvals · distribution · WEBSTER WORLD ·
+// analytics · learning · commercial.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Identity & settings ─────────────────────────────
+
+enum Role {
+  FOUNDER
+  PRODUCER
+  ANALYST
+  VIEWER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(VIEWER)
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id // sha256 of the session token
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum AutonomyMode {
+  ASSISTED
+  SUPERVISED
+  HIGH
+}
+
+/// Singleton row (id = "studio").
+model StudioSettings {
+  id                  String       @id @default("studio")
+  autonomyMode        AutonomyMode @default(ASSISTED)
+  dailyBudgetUsd      Decimal      @default(5) @db.Decimal(12, 4)
+  monthlyBudgetUsd    Decimal      @default(100) @db.Decimal(12, 4)
+  perRunBudgetUsd     Decimal      @default(2) @db.Decimal(12, 4)
+  /// Pre-authorised publishing limit per day (SUPERVISED / HIGH only).
+  autoPublishPerDay   Int          @default(0)
+  maxConcurrentJobs   Int          @default(3)
+  allowDemoProvider   Boolean      @default(true)
+  /// Default privacy for external platforms. Never "public" without approval.
+  externalPrivacy     String       @default("private")
+  brandStandards      Json         @default("{}")
+  updatedAt           DateTime     @updatedAt
+}
+
+model ProviderCredential {
+  provider        String   @id // e.g. "anthropic", "openai", "elevenlabs", "youtube"
+  ciphertext      String // AES-256-GCM, base64
+  iv              String
+  tag             String
+  last4           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum CircuitState {
+  CLOSED
+  OPEN
+  HALF_OPEN
+}
+
+/// Live health of each provider: circuit breaker + concurrency.
+model ProviderState {
+  provider     String       @id
+  circuit      CircuitState @default(CLOSED)
+  failures     Int          @default(0)
+  openedUntil  DateTime?
+  inFlight     Int          @default(0)
+  lastError    String?
+  lastSuccessAt DateTime?
+  updatedAt    DateTime     @updatedAt
+}
+
+/// Which provider/model each agent task uses.
+model ModelRoute {
+  task      String   @id // e.g. "iplab.concepts"
+  provider  String
+  model     String
+  params    Json     @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────────── IP knowledge graph ─────────────────────────────
+
+enum CanonStatus {
+  ESTABLISHED
+  PROPOSED
+  NONCANON
+  DEPRECATED
+}
+
+enum AgeRating {
+  ALL
+  AGE_7
+  AGE_13
+  AGE_16
+  AGE_18
+}
+
+enum FranchiseStatus {
+  PROPOSED
+  DEVELOPMENT
+  ACTIVE
+  ARCHIVED
+}
+
+model Universe {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  description String
+  status      CanonStatus @default(PROPOSED)
+  isDemo      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  franchises  Franchise[]
+}
+
+model Franchise {
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  title         String
+  logline       String
+  synopsis      String          @default("")
+  genre         String
+  audience      String
+  tone          String
+  ageRating     AgeRating       @default(ALL)
+  status        FranchiseStatus @default(PROPOSED)
+  canonVersion  Int             @default(0)
+  palette       Json            @default("[]")
+  scores        Json            @default("{}")
+  budgetUsd     Decimal         @default(10) @db.Decimal(12, 4)
+  isDemo        Boolean         @default(false)
+  universeId    String?
+  universe      Universe?       @relation(fields: [universeId], references: [id])
+  conceptId     String?         @unique
+  concept       Concept?        @relation(fields: [conceptId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  entities      CanonEntity[]
+  versions      CanonVersion[]
+  productions   Production[]
+  scripts       Script[]
+  assets        Asset[]
+  agents        Agent[]
+  runs          WorkflowRun[]
+  releases      Release[]
+  titles        WorldTitle[]
+  experiments   Experiment[]
+  learnings     Learning[]
+  opportunities Opportunity[]
+  revenue       Revenue[]
+  favorites     Favorite[]
+  approvals     Approval[]
+}
+
+model Brief {
+  id          String     @id @default(cuid())
+  text        String
+  params      Json       @default("{}") // conceptCount, prototypeCount, genre, audience…
+  createdBy   String
+  createdAt   DateTime   @default(now())
+  concepts    Concept[]
+  research    OpportunityBrief[]
+  runs        WorkflowRun[]
+}
+
+/// Cultural Intelligence output. Evidence records where each claim came from.
+model OpportunityBrief {
+  id        String   @id @default(cuid())
+  briefId   String?
+  brief     Brief?   @relation(fields: [briefId], references: [id])
+  title     String
+  summary   String
+  audience  String
+  genre     String
+  evidence  Json     // [{claim, sourceKind: "model-knowledge"|"web"|"internal-metrics", source, url?, verified}]
+  score     Int
+  provider  String
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum ConceptStatus {
+  PROPOSED
+  SELECTED
+  REJECTED
+}
+
+model Concept {
+  id               String        @id @default(cuid())
+  briefId          String
+  brief            Brief         @relation(fields: [briefId], references: [id])
+  title            String
+  logline          String
+  genre            String
+  audience         String
+  tone             String
+  hook             String
+  ageRating        AgeRating     @default(ALL)
+  comparables      Json          @default("[]")
+  formats          Json          @default("[]")
+  palette          Json          @default("[]")
+  /// originality, emotionalAppeal, extensibility, feasibility (0-100) + overall
+  scores           Json          @default("{}")
+  /// Resemblance to protected properties. Any flag forces human review.
+  resemblanceFlags Json          @default("[]")
+  rank             Int           @default(0)
+  status           ConceptStatus @default(PROPOSED)
+  provider         String
+  isDemo           Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  franchise        Franchise?
+}
+
+enum EntityType {
+  CHARACTER
+  LOCATION
+  EVENT
+  RULE
+  ARC
+  STYLE_GUIDE
+  VOICE_PROFILE
+  MUSIC_THEME
+  AUDIENCE_SEGMENT
+}
+
+/// A node in the canonical IP graph. `data` is validated per type (lib/canon/types.ts).
+model CanonEntity {
+  id          String          @id @default(cuid())
+  franchiseId String
+  franchise   Franchise       @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  type        EntityType
+  slug        String
+  name        String
+  summary     String          @default("")
+  status      CanonStatus     @default(PROPOSED)
+  data        Json            @default("{}")
+  revision    Int             @default(1)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  revisions   CanonRevision[]
+  outgoing    CanonRelation[] @relation("from")
+  incoming    CanonRelation[] @relation("to")
+  assets      AssetEntity[]
+
+  @@unique([franchiseId, type, slug])
+  @@index([franchiseId, type])
+}
+
+model CanonRelation {
+  id        String      @id @default(cuid())
+  fromId    String
+  from      CanonEntity @relation("from", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        CanonEntity @relation("to", fields: [toId], references: [id], onDelete: Cascade)
+  kind      String
+  status    CanonStatus @default(PROPOSED)
+  createdAt DateTime    @default(now())
+
+  @@unique([fromId, toId, kind])
+}
+
+model CanonRevision {
+  id         String      @id @default(cuid())
+  entityId   String
+  entity     CanonEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  revision   Int
+  data       Json
+  changedBy  String
+  reason     String
+  validation Json        @default("{}")
+  createdAt  DateTime    @default(now())
+}
+
+/// Franchise-level canon snapshot, hashed for the ledger.
+model CanonVersion {
+  id          String    @id @default(cuid())
+  franchiseId String
+  franchise   Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  version     Int
+  summary     String
+  changes     Json      @default("[]")
+  hash        String
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  @@unique([franchiseId, version])
+}
+
+// ───────────────────────────── Production & assets ─────────────────────────────
+
+enum ProductionFormat {
+  SHORT
+  EPISODE
+  FEATURE
+  AUDIO_DRAMA
+  COMIC
+  STORY
+  GAME
+  MUSIC
+}
+
+enum ProductionStatus {
+  DEVELOPMENT
+  PRE_PRODUCTION
+  PRODUCTION
+  QA
+  READY
+  RELEASED
+  ARCHIVED
+}
+
+model Production {
+  id          String           @id @default(cuid())
+  franchiseId String
+  franchise   Franchise        @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  title       String
+  format      ProductionFormat @default(SHORT)
+  status      ProductionStatus @default(DEVELOPMENT)
+  runtimeSec  Int?
+  ageRating   AgeRating        @default(ALL)
+  qa          Json             @default("{}")
+  isDemo      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  scripts     Script[]
+  assets      Asset[]
+  releases    Release[]
+}
+
+model Script {
+  id           String      @id @default(cuid())
+  franchiseId  String
+  franchise    Franchise   @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  productionId String?
+  production   Production? @relation(fields: [productionId], references: [id])
+  title        String
+  format       String
+  logline      String
+  /// {scenes: [{heading, action, dialogue: [{character, line}]}]}
+  content      Json
+  revision     Int         @default(1)
+  canonVersion Int
+  validation   Json        @default("{}")
+  provider     String
+  isDemo       Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+}
+
+enum AssetKind {
+  KEY_ART
+  POSTER
+  STORYBOARD_FRAME
+  CHARACTER_SHEET
+  VIDEO
+  AUDIO
+  CAPTIONS
+  DOCUMENT
+}
+
+enum RightsStatus {
+  OWNED_GENERATED
+  LICENSED
+  NEEDS_REVIEW
+  RESTRICTED
+}
+
+enum AssetStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_REVIEW
+}
+
+model Asset {
+  id            String        @id @default(cuid())
+  franchiseId   String?
+  franchise     Franchise?    @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  productionId  String?
+  production    Production?   @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  kind          AssetKind
+  title         String
+  storageKey    String
+  mimeType      String
+  bytes         Int
+  width         Int?
+  height        Int?
+  durationSec   Float?
+  checksum      String
+  /// Generation provenance
+  provider      String
+  model         String?
+  prompt        String?
+  seed          Int?
+  params        Json          @default("{}")
+  revision      Int           @default(1)
+  parentAssetId String?
+  /// Rights
+  rightsStatus  RightsStatus  @default(NEEDS_REVIEW)
+  rightsNotes   String        @default("")
+  aiGenerated   Boolean       @default(false)
+  status        AssetStatus   @default(DRAFT)
+  canonVersion  Int           @default(0)
+  isDemo        Boolean       @default(false)
+  runId         String?
+  stepKey       String?
+  createdAt     DateTime      @default(now())
+  entities      AssetEntity[]
+
+  @@index([franchiseId, kind])
+  @@index([productionId])
+}
+
+/// Which canon entities an asset depends on (drives review-on-change).
+model AssetEntity {
+  assetId  String
+  asset    Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  entityId String
+  entity   CanonEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, entityId])
+}
+
+// ───────────────────────────── Engine ─────────────────────────────
+
+enum Department {
+  CHIEF_STUDIO
+  CULTURAL_INTELLIGENCE
+  ORIGINAL_IP_LAB
+  WRITERS_ROOM
+  VISUAL_DEVELOPMENT
+  ANIMATION_VIDEO
+  MUSIC_AUDIO
+  GAMES_INTERACTIVE
+  MARKETING_DISTRIBUTION
+  AUDIENCE_INTELLIGENCE
+  FRANCHISE_DEVELOPMENT
+  QUALITY_SAFETY
+  STUDIO_OPERATIONS
+}
+
+enum AgentRole {
+  CHIEF
+  LEAD
+  SPECIALIST
+  FRANCHISE_DIRECTOR
+}
+
+model Agent {
+  id          String     @id @default(cuid())
+  key         String     @unique
+  name        String
+  title       String
+  department  Department
+  role        AgentRole
+  parentKey   String?
+  franchiseId String?
+  franchise   Franchise? @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  /// tools the agent may call, e.g. ["llm","image","ffmpeg","publish:webster-world"]
+  tools       Json       @default("[]")
+  /// permissions, e.g. {"publish": false, "spendUsdPerRun": 0.5}
+  permissions Json       @default("{}")
+  memory      Json       @default("{}")
+  status      String     @default("ACTIVE")
+  createdAt   DateTime   @default(now())
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  WAITING_APPROVAL
+  BLOCKED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model WorkflowRun {
+  id          String         @id @default(cuid())
+  type        String
+  title       String
+  status      RunStatus      @default(PENDING)
+  input       Json
+  state       Json           @default("{}")
+  currentStep String?
+  error       String?
+  blockedReason String?
+  traceId     String
+  costUsd     Decimal        @default(0) @db.Decimal(12, 6)
+  isDemo      Boolean        @default(false)
+  franchiseId String?
+  franchise   Franchise?     @relation(fields: [franchiseId], references: [id])
+  briefId     String?
+  brief       Brief?         @relation(fields: [briefId], references: [id])
+  parentRunId String?
+  createdBy   String
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  steps       WorkflowStep[]
+  events      RunEvent[]
+
+  @@index([status])
+  @@index([franchiseId])
+}
+
+enum StepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  WAITING
+  BLOCKED
+  FAILED
+  SKIPPED
+}
+
+model WorkflowStep {
+  id           String      @id @default(cuid())
+  runId        String
+  run          WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  key          String
+  agentKey     String
+  order        Int
+  status       StepStatus  @default(PENDING)
+  attempt      Int         @default(0)
+  maxAttempts  Int         @default(3)
+  output       Json?
+  error        String?
+  costUsd      Decimal     @default(0) @db.Decimal(12, 6)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([runId, key])
+}
+
+model RunEvent {
+  id        String      @id @default(cuid())
+  runId     String
+  run       WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stepKey   String?
+  agentKey  String?
+  level     String      @default("info")
+  message   String
+  data      Json?
+  createdAt DateTime    @default(now())
+
+  @@index([runId, createdAt])
+}
+
+enum JobStatus {
+  QUEUED
+  LEASED
+  DONE
+  FAILED
+  DEAD
+}
+
+/// Durable queue. Workers lease with FOR UPDATE SKIP LOCKED.
+model Job {
+  id             String    @id @default(cuid())
+  kind           String
+  payload        Json
+  status         JobStatus @default(QUEUED)
+  priority       Int       @default(0)
+  runAt          DateTime  @default(now())
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5)
+  leaseOwner     String?
+  leaseExpiresAt DateTime?
+  lastError      String?
+  idempotencyKey String?   @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, runAt])
+}
+
+/// Recurring work (analytics ingest, learning reviews, flywheel tick).
+model Schedule {
+  key         String   @id
+  jobKind     String
+  payload     Json     @default("{}")
+  intervalSec Int
+  nextRunAt   DateTime @default(now())
+  enabled     Boolean  @default(true)
+  lastRunAt   DateTime?
+}
+
+/// Every provider call: tokens, units, cost, latency, outcome.
+model GenerationRecord {
+  id           String   @id @default(cuid())
+  runId        String?
+  stepKey      String?
+  agentKey     String?
+  provider     String
+  model        String
+  task         String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  units        Float    @default(0) // images, seconds of audio, characters…
+  unitLabel    String?
+  costUsd      Decimal  @default(0) @db.Decimal(12, 6)
+  latencyMs    Int      @default(0)
+  ok           Boolean
+  error        String?
+  requestId    String?
+  isDemo       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([provider, createdAt])
+}
+
+/// Budget holds taken before a paid call and settled after it.
+model SpendReservation {
+  id         String   @id @default(cuid())
+  runId      String?
+  provider   String
+  estimateUsd Decimal @db.Decimal(12, 6)
+  actualUsd  Decimal? @db.Decimal(12, 6)
+  status     String   @default("HELD") // HELD | SETTLED | RELEASED
+  createdAt  DateTime @default(now())
+  settledAt  DateTime?
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actor      String // "user:<id>" or "agent:<key>" or "system"
+  action     String
+  targetType String?
+  targetId   String?
+  data       Json?
+  traceId    String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  kind      String
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// ───────────────────────────── Approvals ─────────────────────────────
+
+enum ApprovalKind {
+  NEW_IP
+  PUBLISH
+  SPEND
+  RIGHTS
+  STRATEGY
+  EXPERIMENT
+  CANON_CHANGE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model Approval {
+  id              String         @id @default(cuid())
+  kind            ApprovalKind
+  title           String
+  summary         String
+  payload         Json           @default("{}")
+  /// Options the approver can pick from (e.g. concept ids) and the picked result.
+  options         Json           @default("[]")
+  decision        Json?
+  status          ApprovalStatus @default(PENDING)
+  risk            String         @default("normal")
+  costEstimateUsd Decimal?       @db.Decimal(12, 4)
+  requestedBy     String
+  runId           String?
+  stepKey         String?
+  franchiseId     String?
+  franchise       Franchise?     @relation(fields: [franchiseId], references: [id])
+  decidedBy       String?
+  decidedAt       DateTime?
+  note            String?
+  createdAt       DateTime       @default(now())
+
+  @@index([status])
+}
+
+// ───────────────────────────── Distribution ─────────────────────────────
+
+model Channel {
+  key           String   @id // webster-world | youtube | tiktok | instagram
+  name          String
+  /// CONNECTED | NOT_CONFIGURED | UNSUPPORTED | ERROR
+  status        String   @default("NOT_CONFIGURED")
+  notes         String   @default("")
+  lastCheckedAt DateTime?
+  lastError     String?
+}
+
+enum ReleaseStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PUBLISHING
+  PUBLISHED
+  PARTIAL
+  FAILED
+  REJECTED
+}
+
+model Release {
+  id                     String        @id @default(cuid())
+  franchiseId            String
+  franchise              Franchise     @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  productionId           String
+  production             Production    @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  title                  String
+  description            String
+  tags                   Json          @default("[]")
+  ageRating              AgeRating     @default(ALL)
+  /// Shown to audiences wherever the release appears.
+  aiDisclosure           String
+  containsSyntheticMedia Boolean       @default(true)
+  channels               Json          @default("[]") // requested channel keys
+  status                 ReleaseStatus @default(DRAFT)
+  scheduledAt            DateTime?
+  isDemo                 Boolean       @default(false)
+  createdAt              DateTime      @default(now())
+  publications           Publication[]
+}
+
+enum PublicationStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+  SKIPPED_NOT_CONNECTED
+}
+
+model Publication {
+  id             String            @id @default(cuid())
+  releaseId      String
+  release        Release           @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  channelKey     String
+  status         PublicationStatus @default(PENDING)
+  externalId     String?
+  url            String?
+  error          String?
+  idempotencyKey String            @unique
+  response       Json?
+  publishedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  snapshots      MetricSnapshot[]
+}
+
+// ───────────────────────────── WEBSTER WORLD ─────────────────────────────
+
+enum TitleKind {
+  WATCH
+  LISTEN
+  READ
+  PLAY
+}
+
+model WorldTitle {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  franchiseId  String
+  franchise    Franchise   @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  releaseId    String?     @unique
+  kind         TitleKind
+  title        String
+  synopsis     String
+  ageRating    AgeRating   @default(ALL)
+  runtimeSec   Int?
+  posterKey    String?
+  backdropKey  String?
+  mediaKey     String?
+  /// Open-codec rendition (WebM VP9/Opus) for browsers without H.264.
+  mediaAltKey  String?
+  captionsKey  String?
+  /// READ titles: {pages:[{heading, body}]}
+  readContent  Json?
+  disclosure   String
+  isDemo       Boolean     @default(false)
+  publishedAt  DateTime    @default(now())
+  progress     PlaybackProgress[]
+  favorites    Favorite[]
+}
+
+/// Viewer identity for WEBSTER WORLD (anonymous cookie, optionally named).
+model Viewer {
+  id            String    @id // random id stored in a cookie
+  displayName   String?
+  maturityLimit AgeRating @default(AGE_13)
+  createdAt     DateTime  @default(now())
+  progress      PlaybackProgress[]
+  favorites     Favorite[]
+}
+
+model PlaybackProgress {
+  viewerId    String
+  viewer      Viewer     @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  titleId     String
+  title       WorldTitle @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  positionSec Float
+  durationSec Float
+  completed   Boolean    @default(false)
+  updatedAt   DateTime   @updatedAt
+
+  @@id([viewerId, titleId])
+}
+
+model Favorite {
+  id          String      @id @default(cuid())
+  viewerId    String
+  viewer      Viewer      @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  titleId     String?
+  title       WorldTitle? @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  franchiseId String?
+  franchise   Franchise?  @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+
+  @@unique([viewerId, titleId])
+  @@unique([viewerId, franchiseId])
+}
+
+// ───────────────────────────── Analytics (warehouse-ready) ─────────────────────────────
+
+/// Append-only raw events. Never synthesised.
+model AnalyticsEvent {
+  id           String   @id @default(cuid())
+  source       String // webster-world | youtube
+  type         String // impression | play | progress | complete | share | favorite
+  titleId      String?
+  franchiseId  String?
+  viewerId     String?
+  sessionId    String?
+  experimentId String?
+  variant      String?
+  value        Float?
+  props        Json     @default("{}")
+  occurredAt   DateTime
+  receivedAt   DateTime @default(now())
+
+  @@index([titleId, type, occurredAt])
+  @@index([experimentId, variant])
+}
+
+/// Aggregated metrics per title/publication per window.
+model MetricSnapshot {
+  id            String       @id @default(cuid())
+  source        String
+  titleId       String?
+  franchiseId   String?
+  publicationId String?
+  publication   Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  windowStart   DateTime
+  windowEnd     DateTime
+  /// impressions, plays, uniqueViewers, avgWatchSec, completionRate, shares, favorites…
+  metrics       Json
+  sampleSize    Int
+  createdAt     DateTime     @default(now())
+
+  @@index([titleId, windowEnd])
+}
+
+// ───────────────────────────── Learning ─────────────────────────────
+
+enum ExperimentStatus {
+  PROPOSED
+  APPROVED
+  RUNNING
+  CONCLUDED
+  ABANDONED
+}
+
+model Experiment {
+  id          String              @id @default(cuid())
+  franchiseId String?
+  franchise   Franchise?          @relation(fields: [franchiseId], references: [id])
+  titleId     String?
+  hypothesis  String
+  /// {type:"ab", metric, unit:"viewer", alpha, minSamplePerArm, allocation, maxDays}
+  design      Json
+  /// {channel, audience, period}
+  conditions  Json                @default("{}")
+  confounders Json                @default("[]")
+  status      ExperimentStatus    @default(PROPOSED)
+  createdBy   String
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime            @default(now())
+  variants    ExperimentVariant[]
+  results     ExperimentResult[]
+  learnings   Learning[]
+}
+
+model ExperimentVariant {
+  id           String     @id @default(cuid())
+  experimentId String
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  key          String // A, B…
+  description  String
+  payload      Json // e.g. {title}, {posterKey}
+
+  @@unique([experimentId, key])
+}
+
+model ExperimentResult {
+  id           String     @id @default(cuid())
+  experimentId String
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  metric       String
+  /// per arm: {n, successes, rate, ciLow, ciHigh}
+  arms         Json
+  effect       Float?
+  ciLow        Float?
+  ciHigh       Float?
+  pValue       Float?
+  /// INSUFFICIENT_DATA | NO_DETECTABLE_DIFFERENCE | VARIANT_BETTER | CONTROL_BETTER
+  conclusion   String
+  computedAt   DateTime   @default(now())
+}
+
+/// Findings and decisions retrieved by agents when planning.
+model Learning {
+  id           String      @id @default(cuid())
+  franchiseId  String?
+  franchise    Franchise?  @relation(fields: [franchiseId], references: [id])
+  experimentId String?
+  experiment   Experiment? @relation(fields: [experimentId], references: [id])
+  statement    String
+  evidence     Json        @default("{}")
+  /// LOW | MEDIUM | HIGH
+  confidence   String
+  decision     String
+  followUp     String?
+  scope        String      @default("franchise") // franchise | studio
+  status       String      @default("ACTIVE")
+  createdBy    String
+  createdAt    DateTime    @default(now())
+}
+
+// ───────────────────────────── Commercial ─────────────────────────────
+
+model Opportunity {
+  id           String    @id @default(cuid())
+  franchiseId  String
+  franchise    Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  kind         String // SPINOFF | SEASON | FILM | COMIC | GAME | MUSIC | MERCH | LICENSING
+  title        String
+  rationale    String
+  evidence     Json      @default("[]")
+  estCostUsd   Decimal?  @db.Decimal(12, 2)
+  priority     Int       @default(0)
+  status       String    @default("PROPOSED")
+  createdBy    String
+  createdAt    DateTime  @default(now())
+}
+
+/// Real revenue only. Empty until a revenue source is connected.
+model Revenue {
+  id          String    @id @default(cuid())
+  franchiseId String
+  franchise   Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  source      String
+  amountUsd   Decimal   @db.Decimal(12, 2)
+  occurredAt  DateTime
+  note        String    @default("")
+  createdAt   DateTime  @default(now())
+}

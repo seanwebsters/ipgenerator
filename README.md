@@ -1,76 +1,97 @@
-# WorldFactory
+# WEBSTER
 
-An AI entertainment studio: one prompt becomes a living franchise, with twelve studios building from one versioned canon.
+WEBSTER is an entertainment company built on an autonomous AI studio. Its original worlds, characters and stories are made by a durable, auditable production engine, and released to audiences on **WEBSTER WORLD**. The founder directs the studio from **WEBSTER OS**.
 
-![Portfolio](docs/screenshots/03-studio-portfolio.png)
+![WEBSTER WORLD](docs/screenshots/08-world-home.png)
 
-## Milestone 1
+**This is a working system.** One brief goes all the way through, persisted at every step:
 
-- **Landing page** (`/`): hero with a prompt bar, the 12 studios, the virtual studio team, the pipeline and pricing.
-- **Studio home** (`/studio`): a portfolio of living franchises with the cross-portfolio approvals and activity feeds.
-- **One-prompt launch** (`/studio/new`): Discovery (5 concepts) -> pick -> creative development -> greenlight to canon v1.
-- **Franchise workspace** (`/studio/f/:id/:section`) with all 12 studios:
-  - **Full depth:** IP Lab, Character Studio, World Builder, Social Studio and IP Vault, plus IP Bible export (Markdown, JSON, print/PDF).
-  - **Lighter:** Story Room, Animation, Music & Sound, Games, Publishing, Merch & Licensing and Brand. Each lets you pick a deliverable kind, generate it from canon and approve it.
-  - **IP Genome** (trait radar and lineage) and **Franchise Simulator** (audience, revenue and breakeven sliders).
-- **Studio Director:** Atlas drafts a phased plan, and each task runs through a department agent and lands in the **approvals queue**.
-- **Canon versioning:** every greenlight or edit to the core, cast or world is a new canon version, hashed into the Vault ledger. Editing a character flags every asset that depends on them as **Needs review** and queues a canon review for the owning department.
-- **Seed demo franchise:** *Moonwilders*, at canon v3 with 15 assets, a plan, vault records and pending approvals.
+1. Concepts are generated, scored and greenlit.
+2. The canon bible, pilot script, storyboard and an FFmpeg animatic are produced.
+3. QA reviews the result and the founder approves it.
+4. It's published to WEBSTER WORLD.
+5. Real audience events come back in.
+6. A statistically honest experiment proposal follows.
 
-## Stack
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design, data model, integration matrix and phased plan.
 
-Next.js 16 (App Router) + TypeScript + Tailwind CSS 4 + Framer Motion + lucide-react.
+## Quick start
 
-## Running it
+Requirements:
+
+* Node 22
+* PostgreSQL 16
+* FFmpeg with libx264, libvpx-vp9, libopus and libass
 
 ```bash
-npm install
-npm run dev            # http://localhost:3000
+cp .env.example .env            # set DATABASE_URL (and optionally provider keys)
+npm install                     # also runs `prisma generate`
+npm run db:migrate              # apply migrations
+npm run db:seed                 # settings, founder account, agents, channels, schedules
+npm run dev:all                 # web app + engine worker
 ```
 
-The app runs fully without an API key. Every AI route falls back to a deterministic mock generator (`lib/ai/mock.ts`), so the same input always gives the same output.
+* WEBSTER WORLD: http://localhost:3000
+* WEBSTER OS: http://localhost:3000/os. Sign in with `WEBSTER_FOUNDER_EMAIL` / `WEBSTER_FOUNDER_PASSWORD`; the seed defaults to `founder@webster.studio` / `webster-dev`.
 
-To use Claude, set `ANTHROPIC_API_KEY` (see `.env.example`). The top bar shows which mode is active, and so does `GET /api/health`. Set `WORLDFACTORY_MOCK=1` to force the mock while a key is present.
+In production, run `npm run build && npm start`, plus one or more `npm run worker` processes.
 
-## Architecture
+### Try the slice
 
-| Path | What it does |
-| --- | --- |
-| `app/api/ai/[task]/route.ts` | One server route per AI task: `discovery`, `develop`, `character`, `world`, `studio`, `social`, `director` |
-| `lib/ai/tasks.ts` | Calls `@anthropic-ai/sdk` with `client.messages.parse` + `zodOutputFormat` on model `claude-opus-5-5`. Falls back to the mock if there's no key, the call errors, or Claude refuses |
-| `lib/ai/schemas.ts` | Zod schemas for each task's structured output |
-| `lib/ai/mock.ts` | Deterministic mock generators |
-| `lib/franchise.ts` | Domain logic: canon versioning and hashing, downstream review flagging, approvals, Director plans, Genome, Simulator, Bible export |
-| `lib/repository.ts` | `FranchiseRepository` interface + `LocalStorageFranchiseRepository` |
-| `lib/seed.ts` | The Moonwilders demo franchise |
-| `supabase/migrations/` | Postgres schema with row-level security, ready for a Supabase repository |
+In **Founder Copilot**, type:
 
-### Data
+> Develop five original fantasy franchises for young adults and prototype the two strongest concepts.
 
-Milestone 1 stores everything in `localStorage` behind `FranchiseRepository`. Use "Reset demo data" on `/studio` to restore Moonwilders.
+Then:
 
-`supabase/migrations/20261017000000_worldfactory_init.sql` defines the target schema:
-- franchises, characters, assets, approvals, vault records and activity, all owner-scoped through RLS;
-- an append-only canon ledger.
+1. Watch it on the **Studio Floor**.
+2. Greenlight two concepts in the **Approval Inbox**.
+3. Approve the two publications.
+4. Open WEBSTER WORLD.
 
-A `SupabaseFranchiseRepository` can implement the same interface later.
+After people watch, use **Intelligence → Review now** to get findings and an experiment proposal.
 
-### Canon and review flow
+`npm run slice` drives all of this in a browser and writes screenshots to `docs/screenshots/`. It needs a running app and worker. Its viewer sessions are tagged as QA traffic.
 
-1. Each asset records `dependsOn` (character, location or rule ids) and the `canonVersion` it was approved against.
-2. `commitEntityChange()` bumps the canon version and hashes the new canon. It then marks every non-draft dependent asset `needs_review` and queues a review approval for that studio.
-3. In the queue, **Still canon** re-approves the asset against the new version; **Rework** sends it back to draft.
+## Without API keys
 
-## Screenshots
+Everything runs. Writing agents use a **deterministic DEMO generator**, which you can turn off in Settings:
 
-`node scripts/screenshots.mjs http://localhost:3000` drives the main flows and writes PNGs to `docs/screenshots/` (it needs a running server). The script includes a character edit that flags downstream assets.
+* It is labelled DEMO everywhere: OS, WORLD, disclosures and the database.
+* It is never published to external platforms.
 
-| | |
-| --- | --- |
-| ![Landing](docs/screenshots/01-landing-hero.png) | ![Discovery](docs/screenshots/04-launch-discovery.png) |
-| ![Review](docs/screenshots/06-launch-review.png) | ![Overview](docs/screenshots/08-moonwilders-overview.png) |
-| ![Character edit](docs/screenshots/10-character-edit-impact.png) | ![Approvals](docs/screenshots/12-approvals-queue.png) |
-| ![Social](docs/screenshots/16-social-studio.png) | ![Director](docs/screenshots/18-studio-director.png) |
-| ![World](docs/screenshots/15-world-builder.png) | ![Vault](docs/screenshots/17-ip-vault.png) |
+Storyboards and key art come from WEBSTER's in-house **procedural renderer**. It isn't AI generation, and it's labelled as such.
 
-Trademark searches, filings and the simulator are simulated planning aids, not legal or financial advice.
+Add `ANTHROPIC_API_KEY` (or store it encrypted from Settings) for real writing on `claude-opus-5-5`. Add OpenAI, ElevenLabs and YouTube credentials to enable AI imagery, licensed voices and external publishing. Missing integrations are never faked: their jobs block with setup instructions, or their publications are recorded as skipped.
+
+## Tests & CI
+
+```bash
+npm test          # unit + integration tests against Postgres (TEST_DATABASE_URL) with real FFmpeg
+npm run typecheck
+npm run build
+```
+
+The integration tests cover:
+
+* queue leasing, retry and dead-lettering;
+* budget caps and the circuit breaker;
+* workflow retry, block and resume;
+* missing-credential blocking;
+* autonomy policy;
+* the full vertical slice, from brief to experiment proposal.
+
+CI runs on GitHub Actions with a Postgres service.
+
+## Layout
+
+```
+app/(world)/       WEBSTER WORLD (consumer)
+app/os/            WEBSTER OS (founder command center) + server actions
+app/api/           media (Range), world events, auth
+engine/            workflows, queue, worker, metering, policy, canon, agents,
+                   providers (llm/image/voice), media (ffmpeg/render), channels, analytics, learning
+prisma/            schema, migrations, seed
+tests/             vitest unit + integration
+archive/worldfactory/  the earlier WorldFactory prototype (superseded by WEBSTER)
+```

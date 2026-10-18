@@ -3,6 +3,10 @@ node_modules
 out
 next-env.d.ts
 *.tsbuildinfo
-.env*.local
 .env
+.env*.local
 .DS_Store
+/generated
+/storage
+/archive/worldfactory/node_modules
+/archive/worldfactory/.next
