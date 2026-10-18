@@ -72,7 +72,7 @@ There are 13 permanent departments. Each has a lead agent and specialists, with 
 * Quality & Safety
 * Studio Operations
 
-Games & Interactive and Franchise Development are registered but flagged as Phase 2.
+Games & Interactive and Franchise Development were added in Phase 2.
 
 ### Persistent IP memory (`engine/canon.ts`)
 `CanonEntity` is a typed graph covering:
@@ -163,22 +163,36 @@ Every department reads canon through `canonDigest()`. Scripts are validated agai
 * durable engine, metering, autonomy policy;
 * tests and CI.
 
-**Phase 2.**
+**Phase 2 (delivered).**
 
-* Canon-change UI: propose, validate, approve, then flag dependants.
-* Franchise Development business cases and opportunities.
-* Episodic series and long-form formats.
+* **Canon changes:** characters can be edited from the franchise workspace. A change creates a `CANON_CHANGE` approval showing before/after and its impact. Approving it applies the change and creates a new hashed canon version. Dependent assets are flagged `NEEDS_REVIEW`, and the workspace has a Quality review queue (Still canon / Retire).
+* **Franchise Development (`franchise.develop`):**
+  1. Measured evidence (metrics with intervals, QA share, measured run costs) feeds the proposals.
+  2. Opportunities carry cost estimates derived from real completed-run spend, and the basis is recorded.
+  3. A founder `STRATEGY` decision picks which ones to make.
+  4. The chosen productions are commissioned.
+
+  Merchandise and licensing are proposal-only: never produced, never committed.
+* **New formats:**
+  * Episodes reuse the pilot pipeline with continuity context.
+  * Comics (`franchise.comic`) are composed from *approved* storyboards into print-size pages and published as READ titles.
+  * Interactive stories (`franchise.interactive`) are branching graphs validated as software: no dangling choices, dead ends, unreachable nodes or inescapable loops; at least two endings; playthroughs counted. Each node is illustrated, and the result is published as a PLAY title with a player on WEBSTER WORLD.
+* **Shared release steps:** all formats share the publication gate, publishing and measurement steps. Disclosures are generated from provenance.
+* **Autonomous flywheel (`studio.flywheel`):** off by default. It starts development cycles for idle live franchises on an interval, and each cycle still ends at the founder.
+* **Learning hygiene:** there is a minimum audience before experimenting (`LEARNING_MIN_VIEWERS`, default 20) and one open experiment per franchise.
+
+**Phase 3 (next).**
+
 * Remotion compositions for motion graphics.
 * S3/R2 storage.
 * Cultural Intelligence with a real web-search tool and citations.
 * Poster/thumbnail experiments.
 * Founder goals per franchise.
 
-**Phase 3.**
+**Phase 4.**
 
-* Games & Interactive: playable prototypes as tested software.
 * Music releases and audio dramas (LISTEN).
-* Comics (READ).
+* Real-time games beyond branching stories.
 * TikTok and Instagram once apps are audited.
 * Localisation.
 * Merchandise concepts.

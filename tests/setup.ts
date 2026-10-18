@@ -8,3 +8,4 @@ delete process.env.ANTHROPIC_API_KEY;
 delete process.env.OPENAI_API_KEY;
 delete process.env.ELEVENLABS_API_KEY;
 delete process.env.YOUTUBE_REFRESH_TOKEN;
+process.env.LEARNING_MIN_VIEWERS = "10";

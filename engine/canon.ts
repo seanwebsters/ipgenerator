@@ -137,7 +137,10 @@ export async function applyChange(entityId: string, data: Record<string, unknown
   const merged = { ...(e.data as Record<string, unknown>), ...data };
   await db.$transaction([
     db.canonRevision.create({ data: { entityId, revision: e.revision, data: e.data as Prisma.InputJsonValue, changedBy: actor, reason } }),
-    db.canonEntity.update({ where: { id: entityId }, data: { data: merged as Prisma.InputJsonValue, revision: { increment: 1 }, summary: String(merged.summary ?? e.summary) } }),
+    db.canonEntity.update({
+      where: { id: entityId },
+      data: { data: merged as Prisma.InputJsonValue, revision: { increment: 1 }, name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : e.name, summary: String(merged.summary ?? e.summary) },
+    }),
   ]);
   const f = await db.franchise.update({ where: { id: e.franchiseId }, data: { canonVersion: { increment: 1 } } });
   const hash = await canonHash(e.franchiseId);

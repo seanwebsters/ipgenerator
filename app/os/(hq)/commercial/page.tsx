@@ -15,6 +15,7 @@ export default async function Commercial() {
     db.revenue.aggregate({ _sum: { amountUsd: true } }),
     db.generationRecord.findMany({ orderBy: { createdAt: "desc" }, take: 25 }),
   ]);
+  const opportunities = await db.opportunity.findMany({ include: { franchise: true }, orderBy: { createdAt: "desc" }, take: 30 });
   const totalCost = byProvider.reduce((n, p) => n + Number(p._sum.costUsd ?? 0), 0);
   const failures = recent.filter((r) => !r.ok).length;
   return (
@@ -63,8 +64,27 @@ export default async function Commercial() {
           </div>
         </Section>
       </div>
-      <Section title="Merchandise & licensing">
-        <Empty>Merchandise concepts and licensing opportunities come from the Franchise Development department in Phase 2. WEBSTER never enters licensing agreements or commercial commitments without founder approval.</Empty>
+      <Section title="Expansion, merchandise & licensing pipeline">
+        {opportunities.length ? (
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted-foreground"><tr><th className="pb-2 font-medium">Opportunity</th><th className="font-medium">Franchise</th><th className="font-medium">Kind</th><th className="font-medium">Est. cost</th><th className="font-medium">Basis</th><th className="font-medium">Status</th></tr></thead>
+            <tbody>
+              {opportunities.map((o) => (
+                <tr key={o.id} className="border-t align-top">
+                  <td className="py-2 pr-3">{o.title}</td>
+                  <td className="pr-3 text-muted-foreground">{o.franchise.title}</td>
+                  <td className="pr-3">{o.kind.toLowerCase()}</td>
+                  <td className="pr-3 tabular-nums">{o.estCostUsd == null ? "—" : usd(o.estCostUsd)}</td>
+                  <td className="max-w-xs pr-3 text-xs text-muted-foreground">{o.estBasis}</td>
+                  <td className="text-xs">{o.status.toLowerCase().replace("_", " ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <Empty>No opportunities yet. Franchise Development proposes them after releases.</Empty>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">Merchandise and licensing appear as proposals only. WEBSTER never enters licensing agreements or commercial commitments; those need the founder and real partners.</p>
       </Section>
     </div>
   );

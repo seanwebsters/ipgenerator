@@ -54,6 +54,40 @@ export async function publishToChannel(releaseId: string, channelKey: string, op
   }
 
   try {
+    if (channelKey === "webster-world" && (release.production.format === "COMIC" || release.production.format === "GAME")) {
+      const poster = asset("POSTER");
+      const backdrop = asset("KEY_ART");
+      const isComic = release.production.format === "COMIC";
+      const pages = release.production.assets.filter((a) => a.kind === "DOCUMENT").sort((a, b) => (a.params as { page?: number }).page! - (b.params as { page?: number }).page!);
+      const graph = isComic ? null : await db.script.findFirst({ where: { productionId: release.productionId }, orderBy: { revision: "desc" } });
+      const nodeImages = Object.fromEntries(
+        release.production.assets.filter((a) => a.kind === "STORYBOARD_FRAME").map((a) => [String((a.params as { nodeId?: string }).nodeId), a.storageKey]),
+      );
+      const title = await db.worldTitle.upsert({
+        where: { releaseId },
+        create: {
+          slug: `${slugify(release.title)}-${release.id.slice(-5)}`,
+          franchiseId: release.franchiseId,
+          releaseId,
+          kind: isComic ? "READ" : "PLAY",
+          title: release.title,
+          synopsis: release.description,
+          ageRating: release.ageRating,
+          posterKey: poster?.storageKey,
+          backdropKey: backdrop?.storageKey,
+          readContent: isComic ? ({ comicPages: pages.map((p) => p.storageKey) } as Prisma.InputJsonValue) : undefined,
+          playContent: graph ? ({ graph: graph.content, nodeImages } as unknown as Prisma.InputJsonValue) : undefined,
+          disclosure: release.aiDisclosure,
+          isDemo: release.isDemo,
+        },
+        update: {},
+      });
+      return db.publication.update({
+        where: { id: pub.id },
+        data: { status: "PUBLISHED", externalId: title.id, url: `/${isComic ? "read" : "play"}/${title.slug}`, publishedAt: new Date(), error: null },
+      });
+    }
+
     if (channelKey === "webster-world") {
       const poster = asset("POSTER");
       const backdrop = asset("KEY_ART");
@@ -117,7 +151,7 @@ export async function publishToChannel(releaseId: string, channelKey: string, op
     }
 
     if (channelKey === "youtube") {
-      if (!video) throw new Error("No video asset to upload.");
+      if (!video) throw new Error("No video asset to upload; YouTube only accepts video releases.");
       const result = await meter({ provider: "youtube", model: "videos.insert", task: "distribution.youtube", runId: opts.runId, estimateUsd: 0 }, async () => ({
         result: await uploadVideo({
           videoKey: video.storageKey,

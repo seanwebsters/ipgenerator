@@ -6,11 +6,17 @@ import { usd } from "@/lib/util";
 import { ago, DemoTag, Empty, pct, Section, Stat, StatusBadge } from "@/components/os/bits";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input, Textarea } from "@/components/ui/input";
+import { proposeCanonChange, reviewAsset, startDevelopment } from "../../../actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function FranchiseWorkspace({ params }: { params: Promise<{ slug: string }> }) {
+const CANON_MSG: Record<string, string> = { unchanged: "Nothing changed — no proposal created.", "bad-color": "Colour must be a hex value like #c9a35c.", "duplicate-name": "Another character already has that name." };
+
+export default async function FranchiseWorkspace({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ canon?: string }> }) {
   const { slug } = await params;
+  const { canon: canonMsg } = await searchParams;
   const f = await db.franchise.findUnique({
     where: { slug },
     include: {
@@ -23,7 +29,7 @@ export default async function FranchiseWorkspace({ params }: { params: Promise<{
       titles: true,
       experiments: { include: { variants: true, results: { orderBy: { computedAt: "desc" }, take: 1 } }, orderBy: { createdAt: "desc" } },
       learnings: { orderBy: { createdAt: "desc" }, take: 10 },
-      opportunities: true,
+      opportunities: { orderBy: { createdAt: "desc" } },
       runs: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -67,6 +73,30 @@ export default async function FranchiseWorkspace({ params }: { params: Promise<{
         <Stat label="Experiments" value={f.experiments.length} />
       </div>
 
+      {canonMsg && CANON_MSG[canonMsg] && <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">{CANON_MSG[canonMsg]}</div>}
+      {(() => {
+        const flagged = f.productions.flatMap((p) => p.assets.filter((a) => a.status === "NEEDS_REVIEW"));
+        if (!flagged.length) return null;
+        return (
+          <Section title={`Quality review: ${flagged.length} asset(s) depend on changed canon`}>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {flagged.slice(0, 12).map((a) => (
+                <div key={a.id} className="flex items-center gap-3 rounded-lg border border-amber-400/25 bg-amber-400/5 p-2">
+                  {a.mimeType.startsWith("image/") && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={media(a.storageKey) ?? ""} alt="" className="h-12 w-20 rounded object-cover" />
+                  )}
+                  <div className="min-w-0 flex-1 text-xs"><div className="truncate font-medium">{a.title}</div><div className="text-muted-foreground">{a.kind.toLowerCase().replace("_", " ")} · approved at canon v{a.canonVersion}</div></div>
+                  <form action={reviewAsset}><input type="hidden" name="assetId" value={a.id} /><Button size="sm" variant="secondary" name="verdict" value="keep">Still canon</Button></form>
+                  <form action={reviewAsset}><input type="hidden" name="assetId" value={a.id} /><Button size="sm" variant="ghost" name="verdict" value="retire">Retire</Button></form>
+                </div>
+              ))}
+            </div>
+            {flagged.length > 12 && <p className="mt-2 text-xs text-muted-foreground">…and {flagged.length - 12} more.</p>}
+          </Section>
+        );
+      })()}
+
       <Tabs defaultValue="canon">
         <TabsList>
           <TabsTrigger value="canon">Canon</TabsTrigger>
@@ -104,6 +134,20 @@ export default async function FranchiseWorkspace({ params }: { params: Promise<{
                       </div>
                     )}
                     <div className="mt-2 text-[11px] text-muted-foreground">revision {c.revision}</div>
+                    <details className="mt-3 rounded-lg border bg-black/20 p-3 text-sm">
+                      <summary className="cursor-pointer text-xs text-primary">Propose canon change</summary>
+                      <form action={proposeCanonChange} className="mt-3 space-y-2">
+                        <input type="hidden" name="entityId" value={c.id} />
+                        <Input name="name" defaultValue={c.name} aria-label="Name" />
+                        <Textarea name="appearance" defaultValue={d.appearance} rows={2} aria-label="Appearance" />
+                        <Textarea name="motivation" defaultValue={d.motivation} rows={2} aria-label="Motivation" />
+                        <Input name="flaw" defaultValue={d.flaw} aria-label="Flaw" />
+                        <Input name="voice" defaultValue={d.voice} aria-label="Voice" />
+                        <Input name="color" defaultValue={d.color} aria-label="Colour" />
+                        <Input name="reason" placeholder="Why? (recorded in the canon ledger)" />
+                        <Button size="sm">Submit for approval</Button>
+                      </form>
+                    </details>
                   </div>
                 );
               })}
@@ -148,7 +192,18 @@ export default async function FranchiseWorkspace({ params }: { params: Promise<{
               <Section key={p.id} title={`${p.title} · ${p.format.toLowerCase()} · ${p.status.toLowerCase().replace("_", " ")}`} action={<span className="text-xs text-muted-foreground">{p.assets.length} assets</span>}>
                 <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
                   <div>
-                    {video ? <video src={media(video.storageKey) ?? undefined} controls className="aspect-video w-full rounded-lg border bg-black" /> : <Empty>No cut yet.</Empty>}
+                    {video ? (
+                      <video src={media(video.storageKey) ?? undefined} controls className="aspect-video w-full rounded-lg border bg-black" />
+                    ) : p.format === "COMIC" ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {p.assets.filter((a) => a.kind === "DOCUMENT").map((a) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={a.id} src={media(a.storageKey) ?? ""} alt={a.title} className="w-full rounded border" />
+                        ))}
+                      </div>
+                    ) : p.format === "GAME" ? null : (
+                      <Empty>No cut yet.</Empty>
+                    )}
                     <div className="mt-3 grid grid-cols-4 gap-2 md:grid-cols-6">
                       {frames.filter((a) => a.revision === latestRev || latestRev === 0).map((a) => (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -160,7 +215,13 @@ export default async function FranchiseWorkspace({ params }: { params: Promise<{
                     {script && (
                       <div className="max-h-72 overflow-y-auto rounded-lg border bg-black/20 p-4 text-sm">
                         <div className="mb-2 text-xs text-muted-foreground">Script r{script.revision} · canon v{script.canonVersion} · {script.provider}{script.isDemo ? " · DEMO" : ""}</div>
-                        {(script.content as { scenes: { heading: string; action: string; dialogue: { character: string; line: string }[] }[] }).scenes.map((s, i) => (
+                        {(script.content as { nodes?: { id: string; text: string; ending: string; choices: { label: string; to: string }[] }[] }).nodes?.map((n) => (
+                          <div key={n.id} className="mb-2">
+                            <span className="font-mono text-xs text-brass">{n.id}{n.ending ? ` · ${n.ending} ending` : ""}</span> <span className="text-muted-foreground">{n.text}</span>
+                            {n.choices.length > 0 && <div className="text-xs">{n.choices.map((c) => `“${c.label}” → ${c.to}`).join(" · ")}</div>}
+                          </div>
+                        ))}
+                        {((script.content as { scenes?: { heading: string; action: string; dialogue: { character: string; line: string }[] }[] }).scenes ?? []).map((s, i) => (
                           <div key={i} className="mb-3">
                             <div className="font-mono text-xs text-brass">{s.heading}</div>
                             <div className="text-muted-foreground">{s.action}</div>
@@ -289,9 +350,29 @@ export default async function FranchiseWorkspace({ params }: { params: Promise<{
               </div>
             </Section>
           </div>
-          <Section title="Growth opportunities">
-            {f.opportunities.length ? f.opportunities.map((o) => <div key={o.id} className="text-sm">{o.kind}: {o.title}</div>) : (
-              <Empty>The Franchise Development department (spin-offs, seasons, licensing business cases) ships in Phase 2. Proposals will appear here with cost estimates and evidence.</Empty>
+          <Section
+            title="Growth opportunities"
+            action={
+              <form action={startDevelopment}>
+                <input type="hidden" name="franchiseId" value={f.id} />
+                <Button size="sm" variant="secondary">Start development cycle</Button>
+              </form>
+            }
+          >
+            {f.opportunities.length ? (
+              <div className="space-y-2">
+                {f.opportunities.map((o) => (
+                  <div key={o.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm">
+                    <Badge variant="outline">{o.kind.toLowerCase()}</Badge>
+                    <span className="flex-1 font-medium">{o.title}</span>
+                    <span className="text-xs text-muted-foreground">{o.estCostUsd == null ? "cost unknown" : `est. ${usd(o.estCostUsd)}`}</span>
+                    <Badge variant={o.status === "IN_PRODUCTION" ? "success" : o.status === "DECLINED" ? "outline" : "brass"}>{o.status.toLowerCase().replace("_", " ")}</Badge>
+                    {o.runId && <Link href={`/os/floor?run=${o.runId}`} className="text-xs text-primary">run →</Link>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty>No proposals yet. Start a development cycle, or enable the flywheel in Settings.</Empty>
             )}
           </Section>
         </TabsContent>

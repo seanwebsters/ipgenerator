@@ -26,6 +26,8 @@ const TASKS = [
   { task: "marketing.package", kind: "llm" },
   { task: "learning.propose", kind: "llm" },
   { task: "copilot.intent", kind: "llm" },
+  { task: "franchise.opportunities", kind: "llm" },
+  { task: "games.interactive", kind: "llm" },
   { task: "visual.frames", kind: "image" },
   { task: "visual.keyart", kind: "image" },
 ];
@@ -73,6 +75,15 @@ export default async function Settings() {
                 <option value="public">public</option>
               </select>
             </div>
+          </div>
+          <div className="mt-4 grid gap-4 rounded-lg border p-4 md:grid-cols-[1fr_200px]">
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="flywheelEnabled" defaultChecked={s.flywheelEnabled} className="mt-1 accent-[var(--ember)]" />
+              <span>
+                <b>Autonomous flywheel.</b> The Chief Studio Agent starts a Franchise Development cycle for each idle live franchise. Every cycle ends at your strategy decision, and every production it commissions still passes QA and publication gates.
+              </span>
+            </label>
+            <Field label="Cycle interval (minutes)" name="flywheelIntervalMin" value={String(s.flywheelIntervalMin)} />
           </div>
           <label className="mt-4 flex items-center gap-2 text-sm">
             <input type="checkbox" name="allowDemoProvider" defaultChecked={s.allowDemoProvider} className="accent-[var(--ember)]" />

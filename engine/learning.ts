@@ -7,7 +7,8 @@ import { proposeExperiment } from "./tasks/learning";
 
 /** Default goals for a pilot on WEBSTER WORLD. Founder-editable later. */
 export const GOALS = { playRate: 0.35, completionRate: 0.5 };
-const MIN_VIEWERS_FOR_ANALYSIS = Number(process.env.LEARNING_MIN_VIEWERS ?? 1);
+/** Below this many unique viewers the agent records "insufficient data" instead of proposing tests. */
+const MIN_VIEWERS = () => Number(process.env.LEARNING_MIN_VIEWERS ?? 20);
 
 /**
  * Learning review for a published title: measure (real events only),
@@ -16,17 +17,19 @@ const MIN_VIEWERS_FOR_ANALYSIS = Number(process.env.LEARNING_MIN_VIEWERS ?? 1);
  */
 export async function reviewTitle(titleId: string) {
   const title = await db.worldTitle.findUniqueOrThrow({ where: { id: titleId }, include: { franchise: true } });
-  const open = await db.experiment.findFirst({ where: { titleId, status: { in: ["PROPOSED", "APPROVED", "RUNNING"] } } });
-  if (open) return { skipped: "An experiment is already open for this title." };
+  // One open experiment per franchise keeps tests clean (no overlapping arms) and the inbox focused.
+  const open = await db.experiment.findFirst({ where: { franchiseId: title.franchiseId, status: { in: ["PROPOSED", "APPROVED", "RUNNING"] } } });
+  if (open) return { skipped: "An experiment is already open for this franchise." };
 
   const m = await titleMetrics(titleId);
-  if (m.impressions < MIN_VIEWERS_FOR_ANALYSIS) {
-    const recent = await db.learning.findFirst({ where: { franchiseId: title.franchiseId, statement: { startsWith: `No audience data yet for "${title.title}"` }, createdAt: { gte: new Date(Date.now() - 86_400_000) } } });
-    if (recent) return { skipped: "No data (already recorded)" };
+  if (m.impressions < MIN_VIEWERS()) {
+    const prefix = `Not enough audience data yet for "${title.title}"`;
+    const recent = await db.learning.findFirst({ where: { franchiseId: title.franchiseId, statement: { startsWith: prefix }, createdAt: { gte: new Date(Date.now() - 86_400_000) } } });
+    if (recent) return { skipped: "Insufficient data (already recorded)" };
     await db.learning.create({
       data: {
         franchiseId: title.franchiseId,
-        statement: `No audience data yet for "${title.title}" (${m.impressions} viewers). Nothing can be concluded.`,
+        statement: `${prefix} (${m.impressions} of the ${MIN_VIEWERS()} viewers needed before experimenting). Nothing can be concluded.`,
         evidence: { metrics: m } as unknown as Prisma.InputJsonValue,
         confidence: "LOW",
         decision: "Wait for real viewing data before experimenting.",

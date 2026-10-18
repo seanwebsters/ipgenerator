@@ -15,11 +15,17 @@ import { writeBible, type Concepts } from "../tasks/ip";
 import { critiqueScript, packageRelease, writePilot, type PilotScript } from "../tasks/production";
 import { screenOriginality } from "../tasks/originality";
 import { registerWorkflow, type StepContext, type WorkflowDef } from "../workflow";
+import { buildDisclosure, releaseSteps } from "./release-steps";
 import type { AssetKind, RightsStatus } from "../../generated/prisma/client";
 
 export interface PilotInput {
   franchiseId: string;
   conceptId: string;
+  /** 1 = pilot; later episodes reuse established canon. */
+  episode?: number;
+  /** Creative direction from Franchise Development. */
+  direction?: string;
+  opportunityId?: string;
 }
 
 const CROSSFADE = 0.6;
@@ -145,7 +151,7 @@ async function characterIndex(franchiseId: string) {
 
 export const pilot: WorkflowDef<PilotInput> = {
   type: "franchise.pilot",
-  title: () => "Pilot production",
+  title: (i) => ((i.episode ?? 1) > 1 ? `Episode ${i.episode} production` : "Pilot production"),
   steps: [
     {
       key: "bible",
@@ -188,11 +194,12 @@ export const pilot: WorkflowDef<PilotInput> = {
       async run(ctx) {
         const canon = await canonDigest(ctx.input.franchiseId);
         const feedback = (ctx.state.feedback as string[] | undefined) ?? undefined;
-        const res = await writePilot({ canon, franchiseId: ctx.input.franchiseId, feedback }, meta(ctx));
+        const previously = (await db.script.findMany({ where: { franchiseId: ctx.input.franchiseId, production: { status: "RELEASED" } }, orderBy: { createdAt: "asc" } })).map((x) => `${x.title}: ${x.logline}`);
+        const res = await writePilot({ canon, franchiseId: ctx.input.franchiseId, feedback, episode: ctx.input.episode ?? 1, direction: ctx.input.direction, previously }, meta(ctx));
         const f = await db.franchise.findUniqueOrThrow({ where: { id: ctx.input.franchiseId } });
         const existing = ctx.state.productionId ? await db.production.findUnique({ where: { id: ctx.state.productionId as string } }) : null;
         const production =
-          existing ?? (await db.production.create({ data: { franchiseId: f.id, title: res.data.title, format: "SHORT", status: "PRE_PRODUCTION", ageRating: f.ageRating, isDemo: f.isDemo } }));
+          existing ?? (await db.production.create({ data: { franchiseId: f.id, title: res.data.title, format: (ctx.input.episode ?? 1) > 1 ? "EPISODE" : "SHORT", status: "PRE_PRODUCTION", ageRating: f.ageRating, isDemo: f.isDemo } }));
         ctx.state.productionId = production.id;
         const revision = (await db.script.count({ where: { productionId: production.id } })) + 1;
         const script = await db.script.create({
@@ -481,10 +488,8 @@ export const pilot: WorkflowDef<PilotInput> = {
         const script = await db.script.findUniqueOrThrow({ where: { id: scriptId } });
         const pkg = await packageRelease({ franchise: f.title, script: script.content as unknown as PilotScript, ageRating: f.ageRating, audience: f.audience }, meta(ctx));
         const assets = await db.asset.findMany({ where: { productionId } });
-        const writingBy = script.isDemo ? "DEMO placeholder writing from WEBSTER's deterministic demo generator" : `AI-assisted writing (${script.provider})`;
-        const art = assets.some((a) => a.kind === "STORYBOARD_FRAME" && a.aiGenerated) ? "AI-generated storyboard art" : "storyboard art rendered by WEBSTER's in-house procedural renderer";
-        const audio = assets.some((a) => a.kind === "AUDIO" && a.aiGenerated) ? "synthetic voices from a licensed voice library" : "an in-house procedural temp score";
-        const disclosure = `Made by WEBSTER with ${writingBy}, ${art} and ${audio}. Presented as an animatic pilot.`;
+        const episode = Number(ctx.input.episode ?? 1);
+        const disclosure = buildDisclosure({ writingProvider: script.provider, writingIsDemo: script.isDemo, assets, format: episode > 1 ? `Presented as an animatic, episode ${episode}.` : "Presented as an animatic pilot." });
         const channels = ["webster-world", "youtube"];
         const release = await db.release.create({
           data: {
@@ -501,97 +506,11 @@ export const pilot: WorkflowDef<PilotInput> = {
             isDemo: f.isDemo || script.isDemo,
           },
         });
+        ctx.state.releaseId = release.id;
         return { releaseId: release.id, package: pkg.data, disclosure };
       },
     },
-    {
-      key: "publish_gate",
-      agent: "chief.studio",
-      title: "Publication approval",
-      async run(ctx) {
-        const { releaseId } = ctx.outputs.package as { releaseId: string };
-        const release = await db.release.findUniqueOrThrow({ where: { id: releaseId }, include: { production: { include: { assets: true } } } });
-        const channels = (release.channels as string[]).map((key) => ({ key, status: channelStatus(key) }));
-        const policy = await decide({ kind: "PUBLISH", channels: channels.filter((c) => c.status === "CONNECTED").map((c) => c.key), isDemo: release.isDemo, ageRating: release.ageRating });
-        const run = await db.workflowRun.findUniqueOrThrow({ where: { id: ctx.run.id } });
-        const pick = (k: string) => release.production.assets.filter((a) => a.kind === k && a.mimeType !== "video/webm").sort((a, b) => b.revision - a.revision)[0]?.storageKey;
-        const outcome = await ctx.approval(
-          {
-            kind: "PUBLISH",
-            title: `Publish "${release.title}"`,
-            summary: `${release.description}\n\nDisclosure: ${release.aiDisclosure}`,
-            payload: {
-              releaseId,
-              posterKey: pick("POSTER"),
-              videoKey: pick("VIDEO"),
-              channels,
-              runCostUsd: Number(run.costUsd),
-              qa: release.production.qa,
-              policy: policy.reason,
-            } as Prisma.InputJsonValue,
-            costEstimateUsd: Number(run.costUsd),
-            franchiseId: release.franchiseId,
-          },
-          { autoApprove: !policy.requiresHuman, autoReason: policy.reason },
-        );
-        if (!outcome.approved) {
-          await db.release.update({ where: { id: releaseId }, data: { status: "REJECTED" } });
-          ctx.cancel(outcome.note ? `Publication declined: ${outcome.note}` : "Publication declined.");
-        }
-        await db.release.update({ where: { id: releaseId }, data: { status: "APPROVED" } });
-        return { approvedBy: outcome.decidedBy, auto: outcome.auto, policy: policy.reason };
-      },
-    },
-    {
-      key: "publish",
-      agent: "marketing.lead",
-      title: "Publish via authorised integrations",
-      maxAttempts: 4,
-      async run(ctx) {
-        const { releaseId } = ctx.outputs.package as { releaseId: string };
-        const release = await db.release.findUniqueOrThrow({ where: { id: releaseId } });
-        const settings = await db.studioSettings.findUniqueOrThrow({ where: { id: "studio" } });
-        await db.release.update({ where: { id: releaseId }, data: { status: "PUBLISHING" } });
-        const results: { channel: string; status: string; url?: string | null; error?: string | null }[] = [];
-        for (const ch of release.channels as string[]) {
-          // DEMO releases are never sent to external platforms.
-          if (release.isDemo && ch !== "webster-world") {
-            results.push({ channel: ch, status: "SKIPPED_DEMO", error: "DEMO content is not published externally." });
-            continue;
-          }
-          try {
-            const p = await publishToChannel(releaseId, ch, { runId: ctx.run.id, privacy: settings.externalPrivacy });
-            results.push({ channel: ch, status: p.status, url: p.url, error: p.error });
-          } catch (err) {
-            results.push({ channel: ch, status: "FAILED", error: String(err instanceof Error ? err.message : err) });
-          }
-        }
-        for (const r of results) await ctx.log(`${r.channel}: ${r.status}${r.error ? ` — ${r.error}` : ""}`, undefined, r.status === "FAILED" ? "error" : "info");
-        const published = results.filter((r) => r.status === "PUBLISHED").length;
-        const failed = results.filter((r) => r.status === "FAILED");
-        if (!published && failed.length) throw new Error(`All publications failed: ${failed.map((f) => `${f.channel}: ${f.error}`).join("; ")}`);
-        await db.release.update({ where: { id: releaseId }, data: { status: failed.length ? "PARTIAL" : "PUBLISHED" } });
-        await db.production.update({ where: { id: release.productionId }, data: { status: "RELEASED" } });
-        await db.auditLog.create({ data: { actor: `agent:${ctx.agentKey}`, action: "release.publish", targetType: "Release", targetId: releaseId, data: results as unknown as Prisma.InputJsonValue, traceId: ctx.run.traceId } });
-        return { results };
-      },
-    },
-    {
-      key: "measure",
-      agent: "audience.lead",
-      title: "Schedule analytics ingestion and learning review",
-      async run(ctx) {
-        const { releaseId } = ctx.outputs.package as { releaseId: string };
-        const title = await db.worldTitle.findUnique({ where: { releaseId } });
-        await enqueue("analytics.ingest", {}, { idempotencyKey: `ingest:after:${releaseId}` });
-        if (title) {
-          const at = new Date(Date.now() + LEARNING_DELAY_MIN * 60_000);
-          await enqueue("learning.review", { titleId: title.id }, { runAt: at, idempotencyKey: `learning:${title.id}:first` });
-          await ctx.log(`Learning review scheduled for ${at.toISOString()} (after real viewing data accumulates)`);
-        }
-        return { titleId: title?.id ?? null };
-      },
-    },
+    ...releaseSteps("pilot"),
   ],
   async onComplete(run) {
     const f = run.franchiseId ? await db.franchise.findUnique({ where: { id: run.franchiseId } }) : null;

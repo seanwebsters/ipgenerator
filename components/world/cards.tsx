@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BookOpen, Play } from "lucide-react";
+import { BookOpen, Gamepad2, Play } from "lucide-react";
 import { useImpression } from "./track";
 
 export interface CardTitle {
@@ -20,7 +20,7 @@ export interface CardTitle {
 
 export function TitleCard({ t, size = "md" }: { t: CardTitle; size?: "md" | "lg" }) {
   const ref = useImpression(t.id);
-  const href = t.kind === "READ" ? `/read/${t.slug}` : `/watch/${t.slug}`;
+  const href = t.kind === "READ" ? `/read/${t.slug}` : t.kind === "PLAY" ? `/play/${t.slug}` : `/watch/${t.slug}`;
   return (
     <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300, damping: 24 }} className={size === "lg" ? "w-56 shrink-0 sm:w-64" : "w-40 shrink-0 sm:w-48"}>
       <Link ref={ref} href={href} className="group block">
@@ -37,7 +37,7 @@ export function TitleCard({ t, size = "md" }: { t: CardTitle; size?: "md" | "lg"
             <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white/90">{t.ageLabel}</span>
           </div>
           <div className="absolute bottom-2 right-2 grid size-9 place-items-center rounded-full bg-foreground text-background opacity-0 transition group-hover:opacity-100">
-            {t.kind === "READ" ? <BookOpen className="size-4" /> : <Play className="size-4 fill-current" />}
+            {t.kind === "READ" ? <BookOpen className="size-4" /> : t.kind === "PLAY" ? <Gamepad2 className="size-4" /> : <Play className="size-4 fill-current" />}
           </div>
           {t.progress != null && (
             <div className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
@@ -48,7 +48,7 @@ export function TitleCard({ t, size = "md" }: { t: CardTitle; size?: "md" | "lg"
         <div className="mt-2.5 px-0.5">
           <div className="line-clamp-1 text-sm font-medium text-foreground/95">{t.displayTitle}</div>
           <div className="text-xs text-muted-foreground">
-            {t.franchiseTitle} · {t.kind === "READ" ? "Read" : t.runtimeSec ? `${Math.max(1, Math.round(t.runtimeSec / 60))} min` : "Watch"}
+            {t.franchiseTitle} · {t.kind === "READ" ? "Read" : t.kind === "PLAY" ? "Play" : t.runtimeSec ? `${Math.max(1, Math.round(t.runtimeSec / 60))} min` : "Watch"}
           </div>
         </div>
       </Link>

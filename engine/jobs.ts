@@ -1,10 +1,13 @@
 import "./workflows/discovery";
 import "./workflows/pilot";
+import "./workflows/formats";
+import "./workflows/develop";
 import { db } from "../lib/db";
 import type { Job } from "../generated/prisma/client";
 import { ingestAll } from "./analytics/ingest";
 import { evaluateExperiments, reviewTitle } from "./learning";
 import { advance } from "./workflow";
+import { flywheelTick } from "./flywheel";
 
 /** Job kind -> handler. Handlers must be idempotent: jobs can run more than once. */
 export const HANDLERS: Record<string, (payload: Record<string, unknown>, job: Job) => Promise<unknown>> = {
@@ -12,6 +15,7 @@ export const HANDLERS: Record<string, (payload: Record<string, unknown>, job: Jo
   "analytics.ingest": () => ingestAll(),
   "learning.review": (p) => reviewTitle(String(p.titleId)),
   "experiments.evaluate": () => evaluateExperiments(),
+  "studio.flywheel": () => flywheelTick(),
   "studio.housekeeping": async () => {
     // Release budget holds orphaned by crashed calls (older than 30 minutes).
     const stale = new Date(Date.now() - 30 * 60_000);
@@ -24,6 +28,7 @@ export const SCHEDULES = [
   { key: "analytics-ingest", jobKind: "analytics.ingest", intervalSec: 120 },
   { key: "experiments-evaluate", jobKind: "experiments.evaluate", intervalSec: 300 },
   { key: "housekeeping", jobKind: "studio.housekeeping", intervalSec: 600 },
+  { key: "flywheel", jobKind: "studio.flywheel", intervalSec: 300 },
 ];
 
 export async function ensureSchedules() {

@@ -51,7 +51,9 @@ Then:
 
 After people watch, use **Intelligence → Review now** to get findings and an experiment proposal.
 
-`npm run slice` drives all of this in a browser and writes screenshots to `docs/screenshots/`. It needs a running app and worker. Its viewer sessions are tagged as QA traffic.
+**Expansion (Phase 2).** Use a franchise's **Director & roadmap → Start development cycle**, or turn on the flywheel in Settings. Franchise Development proposes episodes, comics and interactive stories with measured cost estimates. You pick what to make, and each production ships through its own QA and publication gates. Character edits go through canon-change approval and flag dependent assets for review.
+
+`npm run slice` (and `node scripts/phase2.mjs` for expansion) drives all of this in a browser and writes screenshots to `docs/screenshots/`. It needs a running app and worker. Its viewer sessions are tagged as QA traffic.
 
 ## Without API keys
 

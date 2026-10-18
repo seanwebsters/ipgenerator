@@ -87,6 +87,8 @@ async function Detail({ id, error }: { id: string; error?: string }) {
       {a.kind === "NEW_IP" && <ConceptPicker options={a.options as { id: string }[]} max={Number(p.maxSelections ?? 1)} open={open} decision={a.decision as { selected?: string[] } | null} />}
       {a.kind === "PUBLISH" && <PublishPreview p={p} />}
       {a.kind === "EXPERIMENT" && <ExperimentPreview experimentId={String(p.experimentId)} />}
+      {a.kind === "STRATEGY" && Array.isArray(p.opportunityIds) && <StrategyPicker ids={p.opportunityIds as string[]} max={Number(p.maxSelections ?? 1)} open={open} />}
+      {a.kind === "CANON_CHANGE" && <CanonChangePreview p={p} />}
 
       {open && (
         <div className="rounded-xl border bg-[#15110e] p-4">
@@ -161,6 +163,15 @@ function PublishPreview({ p }: { p: Record<string, unknown> }) {
     <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
       <div className="space-y-4">
         {typeof p.videoKey === "string" && <video src={media(p.videoKey) ?? undefined} controls className="aspect-video w-full rounded-xl border bg-black" />}
+        {Array.isArray(p.pageKeys) && (p.pageKeys as string[]).length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            {(p.pageKeys as string[]).slice(0, 4).map((k) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={k} src={media(k) ?? ""} alt="" className="w-full rounded-lg border" />
+            ))}
+          </div>
+        )}
+        {p.format === "GAME" && <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">Interactive story. The graph passed structural validation; see the QA report for playthrough counts.</div>}
         <Section title="Quality & Safety report">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5 text-sm">
@@ -227,6 +238,57 @@ async function ExperimentPreview({ experimentId }: { experimentId: string }) {
         <div>Needs ~<b>{d.minSamplePerArm}</b> viewers per arm · max {d.maxDays} days</div>
         <div className="md:col-span-2 text-muted-foreground">Confounders: {(e.confounders as string[]).join("; ")}</div>
       </div>
+    </Section>
+  );
+}
+
+async function StrategyPicker({ ids, max, open }: { ids: string[]; max: number; open: boolean }) {
+  const opps = await db.opportunity.findMany({ where: { id: { in: ids } }, orderBy: { priority: "desc" } });
+  return (
+    <div>
+      <div className="mb-3 text-sm text-muted-foreground">Choose up to <b className="text-foreground">{max}</b>. Each starts a production that still passes QA and publication approval. Proposal-only items can't be produced by the studio and are shown for context.</div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {opps.map((o) => {
+          const ev = o.evidence as { direction?: string; risks?: string[]; isDemo?: boolean };
+          const producible = o.status === "PROPOSED";
+          return (
+            <label key={o.id} className={cn("relative block rounded-xl border bg-card p-5", producible ? "cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary/40" : "opacity-70")}>
+              {open && producible && <input type="checkbox" name="selected" value={o.id} className="absolute right-4 top-4 size-4 accent-[var(--ember)]" />}
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={producible ? "brass" : "outline"}>{o.kind.toLowerCase()}</Badge>
+                {!producible && <Badge variant="outline">proposal only</Badge>}
+                <DemoTag show={!!ev.isDemo} />
+              </div>
+              <div className="font-display mt-2 text-2xl">{o.title}</div>
+              <p className="mt-2 text-sm text-foreground/85">{o.rationale}</p>
+              {ev.direction && <p className="mt-2 text-xs italic text-muted-foreground">Direction: {ev.direction}</p>}
+              <div className="mt-3 text-xs text-muted-foreground">
+                Estimated cost: <b className="text-foreground">{o.estCostUsd == null ? "unknown" : usd(o.estCostUsd)}</b> · {o.estBasis}
+              </div>
+              {ev.risks?.length ? <ul className="mt-2 space-y-0.5 text-xs text-amber-100/80">{ev.risks.map((r) => <li key={r}>· {r}</li>)}</ul> : null}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CanonChangePreview({ p }: { p: Record<string, unknown> }) {
+  const changes = (p.changes ?? {}) as Record<string, string>;
+  const before = (p.before ?? {}) as Record<string, string>;
+  return (
+    <Section title={`Proposed change to ${String(p.entityName ?? "canon")}`}>
+      <div className="space-y-3 text-sm">
+        {Object.entries(changes).map(([k, v]) => (
+          <div key={k} className="grid gap-2 md:grid-cols-[140px_1fr_1fr]">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">{k}</div>
+            <div className="rounded bg-red-400/10 px-2 py-1 text-red-100 line-through decoration-red-300/50">{String(before[k] ?? "—")}</div>
+            <div className="rounded bg-emerald-400/10 px-2 py-1 text-emerald-100">{v}</div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs text-muted-foreground">Approving creates a new canon version (hashed into the ledger) and flags {String(p.impacted ?? 0)} dependent asset(s) as needing review.</p>
     </Section>
   );
 }

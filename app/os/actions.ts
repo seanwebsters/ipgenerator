@@ -100,6 +100,8 @@ export async function saveSettings(form: FormData) {
     maxConcurrentJobs: Math.round(num("maxConcurrentJobs", 1, 16)),
     allowDemoProvider: form.get("allowDemoProvider") === "on",
     externalPrivacy: ["private", "unlisted", "public"].includes(String(form.get("externalPrivacy"))) ? String(form.get("externalPrivacy")) : "private",
+    flywheelEnabled: form.get("flywheelEnabled") === "on",
+    flywheelIntervalMin: Math.round(num("flywheelIntervalMin", 15, 43_200)),
   };
   await db.studioSettings.update({ where: { id: "studio" }, data });
   await db.auditLog.create({ data: { actor: actorOf(user), action: "settings.update", data: data as unknown as Prisma.InputJsonValue } });
@@ -166,4 +168,58 @@ export async function refreshChannelStatus() {
   await requireRole("PRODUCER");
   await refreshChannels();
   revalidatePath("/os/calendar");
+}
+
+const EDITABLE = ["name", "appearance", "motivation", "flaw", "voice", "color"] as const;
+
+/** Propose a change to an established canon character. Applying it needs founder approval. */
+export async function proposeCanonChange(form: FormData) {
+  const user = await requireRole("PRODUCER");
+  const entity = await db.canonEntity.findUniqueOrThrow({ where: { id: String(form.get("entityId")) }, include: { franchise: true, assets: true } });
+  const current = entity.data as Record<string, unknown>;
+  const changes: Record<string, string> = {};
+  for (const k of EDITABLE) {
+    const v = String(form.get(k) ?? "").trim();
+    const before = k === "name" ? entity.name : String(current[k] ?? "");
+    if (v && v !== before) changes[k] = v;
+  }
+  const back = `/os/universe/${entity.franchise.slug}`;
+  if (!Object.keys(changes).length) redirect(`${back}?canon=unchanged`);
+  if (changes.color && !/^#[0-9a-f]{6}$/i.test(changes.color)) redirect(`${back}?canon=bad-color`);
+  if (changes.name) {
+    const clash = await db.canonEntity.findFirst({ where: { franchiseId: entity.franchiseId, type: entity.type, name: { equals: changes.name, mode: "insensitive" }, id: { not: entity.id } } });
+    if (clash) redirect(`${back}?canon=duplicate-name`);
+  }
+  const reason = String(form.get("reason") ?? "").trim() || "Founder edit";
+  await db.approval.create({
+    data: {
+      kind: "CANON_CHANGE",
+      title: `Canon change: ${entity.name}`,
+      summary: `${reason}. ${entity.assets.length} existing asset(s) depend on ${entity.name} and will be flagged for review.`,
+      payload: { entityId: entity.id, entityName: entity.name, changes, before: Object.fromEntries(Object.keys(changes).map((k) => [k, k === "name" ? entity.name : current[k] ?? ""])), reason, impacted: entity.assets.length } as Prisma.InputJsonValue,
+      requestedBy: actorOf(user),
+      franchiseId: entity.franchiseId,
+    },
+  });
+  await db.auditLog.create({ data: { actor: actorOf(user), action: "canon.propose", targetType: "CanonEntity", targetId: entity.id, data: changes } });
+  revalidatePath("/os", "layout");
+  redirect("/os/approvals");
+}
+
+/** Quality review of an asset flagged after a canon change. */
+export async function reviewAsset(form: FormData) {
+  const user = await requireRole("PRODUCER");
+  const asset = await db.asset.findUniqueOrThrow({ where: { id: String(form.get("assetId")) }, include: { franchise: true } });
+  const keep = form.get("verdict") === "keep";
+  await db.asset.update({ where: { id: asset.id }, data: keep ? { status: "APPROVED", canonVersion: asset.franchise?.canonVersion ?? asset.canonVersion } : { status: "REJECTED" } });
+  await db.auditLog.create({ data: { actor: actorOf(user), action: keep ? "asset.reapprove" : "asset.retire", targetType: "Asset", targetId: asset.id } });
+  revalidatePath(`/os/universe/${asset.franchise?.slug}`);
+}
+
+export async function startDevelopment(form: FormData) {
+  const user = await requireRole("PRODUCER");
+  const f = await db.franchise.findUniqueOrThrow({ where: { id: String(form.get("franchiseId")) } });
+  const run = await startRun("franchise.develop", { franchiseId: f.id, trigger: `requested by ${user.name}` }, { createdBy: actorOf(user), franchiseId: f.id, isDemo: f.isDemo });
+  revalidatePath("/os", "layout");
+  redirect(`/os/floor?run=${run.id}`);
 }

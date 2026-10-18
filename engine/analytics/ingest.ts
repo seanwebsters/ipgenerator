@@ -58,7 +58,7 @@ export async function titleMetrics(titleId: string, since?: Date, filter: { expe
 
 export async function ingestAll() {
   const now = new Date();
-  const titles = await db.worldTitle.findMany({ where: { kind: "WATCH" } });
+  const titles = await db.worldTitle.findMany();
   for (const t of titles) {
     const m = await titleMetrics(t.id);
     await db.metricSnapshot.create({

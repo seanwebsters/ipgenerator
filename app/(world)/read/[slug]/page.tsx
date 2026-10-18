@@ -18,6 +18,7 @@ export default async function Read({ params }: { params: Promise<{ slug: string 
   const t = titles.find((x) => x.slug === slug && x.kind === "READ");
   if (!t) notFound();
   const pages = ((t.readContent as { pages?: Page[] })?.pages ?? []) as Page[];
+  const comicPages = (t.readContent as { comicPages?: string[] })?.comicPages ?? [];
   return (
     <main className="mx-auto max-w-3xl px-4 pt-14 sm:px-8">
       <ReadTracker titleId={t.id} />
@@ -25,6 +26,14 @@ export default async function Read({ params }: { params: Promise<{ slug: string 
       <h1 className="font-display mt-3 text-5xl leading-tight">{t.displayTitle}</h1>
       {t.isDemo && <span className="mt-3 inline-block rounded-full bg-fuchsia-500/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">Demo</span>}
       <p className="mt-4 text-lg text-muted-foreground">{t.synopsis}</p>
+      {comicPages.length > 0 && (
+        <div className="mt-12 space-y-8">
+          {comicPages.map((k, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={k} src={media(k) ?? ""} alt={`Page ${i + 1}`} className="w-full rounded-lg shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]" />
+          ))}
+        </div>
+      )}
       <div className="mt-12 space-y-16">
         {pages.map((p, i) => (
           <article key={i}>

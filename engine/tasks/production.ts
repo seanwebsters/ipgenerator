@@ -29,20 +29,25 @@ export interface CanonDigest {
   rules: string[];
 }
 
-export async function writePilot(input: { canon: CanonDigest; franchiseId: string; feedback?: string[] }, meta: TaskMeta) {
+export async function writePilot(
+  input: { canon: CanonDigest; franchiseId: string; feedback?: string[]; episode?: number; direction?: string; previously?: string[] },
+  meta: TaskMeta,
+) {
+  const ep = input.episode ?? 1;
   const c = input.canon;
   return generateStructured({
     ...meta,
     task: "writers.pilot",
     system: `${HOUSE_STYLE}\nYou are the head writer. You write a 60-90 second pilot short that will be produced first as a storyboard animatic, so every beat must be visual and every line short (under 14 words).`,
-    prompt: `Canon (v-current):\nTitle: ${c.title} (${c.ageRating})\nSynopsis: ${c.synopsis}\nCharacters:\n${c.characters.map((x) => `- ${x.name} (${x.role}): wants ${x.motivation} Voice: ${x.voice}`).join("\n")}\nLocations: ${c.locations.join("; ")}\nRules:\n${c.rules.map((r) => `- ${r}`).join("\n")}\n\nLearnings to respect:\n${await learningsFor(input.franchiseId)}\n\n${input.feedback?.length ? `Revise to fix these QA notes:\n${input.feedback.map((f) => `- ${f}`).join("\n")}\n\n` : ""}Write the pilot short: 3 scenes, 2-4 lines of dialogue each. Use only canon characters and canon locations, spelled exactly.`,
+    prompt: `Canon (v-current):\nTitle: ${c.title} (${c.ageRating})\nSynopsis: ${c.synopsis}\nCharacters:\n${c.characters.map((x) => `- ${x.name} (${x.role}): wants ${x.motivation} Voice: ${x.voice}`).join("\n")}\nLocations: ${c.locations.join("; ")}\nRules:\n${c.rules.map((r) => `- ${r}`).join("\n")}\n\nLearnings to respect:\n${await learningsFor(input.franchiseId)}\n\n${ep > 1 ? `This is EPISODE ${ep}, not the pilot. Previously released:\n${(input.previously ?? []).map((p) => `- ${p}`).join("\n") || "- (none)"}\nContinue the story; don't repeat the pilot.\n` : ""}${input.direction ? `Creative direction: ${input.direction}\n` : ""}\n${input.feedback?.length ? `Revise to fix these QA notes:\n${input.feedback.map((f) => `- ${f}`).join("\n")}\n\n` : ""}Write the ${ep > 1 ? `episode ${ep} short` : "pilot short"}: 3 scenes, 2-4 lines of dialogue each. Use only canon characters and canon locations, spelled exactly.`,
     schema: ScriptSchema,
     maxTokens: 6000,
-    demo: () => demoPilot(c, input.feedback),
+    demo: () => demoPilot(c, input.feedback, ep),
   });
 }
 
-export function demoPilot(c: CanonDigest, feedback?: string[]): PilotScript {
+export function demoPilot(c: CanonDigest, feedback?: string[], episode = 1): PilotScript {
+  if (episode > 1) return demoEpisode(c, episode);
   const [lead, friend, mentor, rival] = c.characters;
   const L = (n?: { name: string }) => n?.name ?? lead.name;
   const [home, shore, edge] = [c.locations[0] ?? "Home", c.locations[1] ?? c.locations[0] ?? "The Shore", c.locations[2] ?? c.locations[0] ?? "The Edge"];
@@ -140,4 +145,19 @@ export async function packageRelease(input: { franchise: string; script: PilotSc
       socialCaption: `${input.script.logline} Pilot animatic, out now.`,
     }),
   });
+}
+
+function demoEpisode(c: CanonDigest, episode: number): PilotScript {
+  const [lead, friend, mentor, rival] = c.characters;
+  const L = (n?: { name: string }) => n?.name ?? lead.name;
+  const [home, shore, edge] = [c.locations[0] ?? "Home", c.locations[1] ?? c.locations[0] ?? "The Shore", c.locations[2] ?? c.locations[0] ?? "The Edge"];
+  return {
+    title: `${c.title}: Episode ${episode} — ${["", "", "The Borrowed Light", "What the Keeper Kept", "Low Tide"][episode] ?? "The Long Night"}`,
+    logline: `${L(friend)} takes a turn carrying the flame while ${lead.name} learns what the promise costs.`,
+    scenes: [
+      { heading: `INT. ${home.toUpperCase()} - DUSK`, location: home, action: `The lamp burns, barely. ${lead.name} hasn't slept. ${L(friend)} has made too much tea.`, framing: "establishing", dialogue: [{ character: L(friend), line: "You can't hold it every night.", framing: "medium" }, { character: lead.name, line: "I promised.", framing: "close" }] },
+      { heading: `EXT. ${shore.toUpperCase()} - NIGHT`, location: shore, action: `${L(mentor)} shows ${L(friend)} how to shield a flame from the wind.`, framing: "wide", dialogue: [{ character: L(mentor), line: "A promise can be shared. That's the secret.", framing: "medium" }, { character: L(friend), line: "Then let me carry it tonight.", framing: "close" }] },
+      { heading: `EXT. ${edge.toUpperCase()} - LATER`, location: edge, action: `The dark watches a different keeper, and is curious.`, framing: "wide", dialogue: [{ character: L(rival), line: "A new light. Will it come back too?", framing: "close" }, { character: L(friend), line: "Every night. Ask anyone.", framing: "medium" }] },
+    ],
+  };
 }

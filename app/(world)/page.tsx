@@ -74,6 +74,13 @@ export default async function Discover() {
           <TitleCard key={t.id} t={toCard(t)} size="lg" />
         ))}
       </Row>
+      {titles.some((t) => t.kind === "PLAY") && (
+        <Row title="Play the story">
+          {titles.filter((t) => t.kind === "PLAY").map((t) => (
+            <TitleCard key={t.id} t={toCard(t)} size="lg" />
+          ))}
+        </Row>
+      )}
       {titles.some((t) => t.kind === "READ") && (
         <Row title="Read the worlds">
           {titles.filter((t) => t.kind === "READ").map((t) => (
