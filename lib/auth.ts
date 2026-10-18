@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { db } from "./db";
+import { db, DEMO_FOUNDER, embeddedDb } from "./db";
 import { randomToken, sha256 } from "./crypto";
 import type { Role } from "../generated/prisma/client";
 
@@ -22,6 +22,9 @@ export async function destroySession() {
 }
 
 export async function currentUser() {
+  // Temporary built-in database (no DATABASE_URL): no sign-in, everyone is the
+  // demo founder. Sign-in is required whenever real data is connected.
+  if (embeddedDb()) return db.user.findUnique({ where: { email: DEMO_FOUNDER.email } });
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const s = await db.session.findUnique({ where: { id: sha256(token) }, include: { user: true } });

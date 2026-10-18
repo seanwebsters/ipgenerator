@@ -61,9 +61,11 @@ export default async function HQLayout({ children }: { children: React.ReactNode
               {running > 0 && <Badge variant="success"><span className="size-1.5 animate-pulse rounded-full bg-emerald-300" /> {running} running</Badge>}
               <Link href="/os/settings"><Badge variant="brass">{MODE_LABEL[settings.autonomyMode]}</Badge></Link>
               <span className="hidden text-xs text-muted-foreground sm:inline">{user.name} · {user.role.toLowerCase()}</span>
-              <form action="/api/auth/logout" method="post">
-                <button className="text-xs text-muted-foreground hover:text-foreground">Sign out</button>
-              </form>
+              {!embeddedDb() && (
+                <form action="/api/auth/logout" method="post">
+                  <button className="text-xs text-muted-foreground hover:text-foreground">Sign out</button>
+                </form>
+              )}
             </div>
           </div>
           <MobileNav />
