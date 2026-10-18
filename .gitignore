@@ -10,3 +10,4 @@ next-env.d.ts
 /storage
 /archive/worldfactory/node_modules
 /archive/worldfactory/.next
+.uuid
