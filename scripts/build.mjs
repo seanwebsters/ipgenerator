@@ -6,8 +6,11 @@ import { execSync } from "node:child_process";
  * so a deploy needs no manual database step.
  */
 const sh = (cmd) => execSync(cmd, { stdio: "inherit" });
-if (process.env.VERCEL) {
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set. Add a Postgres database to the Vercel project (Storage → Prisma Postgres or Neon).");
+if (process.env.VERCEL && !process.env.DATABASE_URL) {
+  // Still build, so the project exists and can have a database attached; the
+  // app shows setup instructions until then. Redeploy after connecting one.
+  console.warn("\n⚠  DATABASE_URL is not set: skipping migrations and seed. Connect a database (Storage → Prisma Postgres), then redeploy.\n");
+} else if (process.env.VERCEL) {
   sh("npx prisma migrate deploy");
   sh("npx tsx prisma/seed.ts");
 }

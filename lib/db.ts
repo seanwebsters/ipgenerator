@@ -9,8 +9,21 @@ function create() {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 }
 
-export const db: PrismaClient = globalForPrisma.prisma ?? create();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+/**
+ * Created on first use, so modules that import `db` can load (e.g. during
+ * `next build`) before a database is connected.
+ */
+function client(): PrismaClient {
+  return (globalForPrisma.prisma ??= create());
+}
+
+export const db = new Proxy({} as PrismaClient, {
+  get(_, prop) {
+    const c = client();
+    const v = Reflect.get(c, prop, c);
+    return typeof v === "function" ? v.bind(c) : v;
+  },
+});
 
 export type { PrismaClient };
 export * from "../generated/prisma/enums";
