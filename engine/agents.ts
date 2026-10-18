@@ -44,7 +44,7 @@ export const AGENTS: AgentSpec[] = [
   { key: "marketing.lead", name: "Herald", title: "Head of Marketing & Distribution", department: "MARKETING_DISTRIBUTION", role: "LEAD", parentKey: "chief.studio", tools: [...llm, "publish:webster-world", "publish:youtube"], permissions: { publish: "after-approval" } },
   { key: "audience.lead", name: "Tally", title: "Head of Audience Intelligence", department: "AUDIENCE_INTELLIGENCE", role: "LEAD", parentKey: "chief.studio", tools: [...llm, "analytics:read", "experiments"], permissions: {} },
   { key: "franchise.lead", name: "Crown", title: "Head of Franchise Development", department: "FRANCHISE_DEVELOPMENT", role: "LEAD", parentKey: "chief.studio", tools: [...llm, "analytics:read", "cost-ledger:read"], permissions: { commitments: false } },
-  { key: "quality.lead", name: "Warden", title: "Head of Quality & Safety", department: "QUALITY_SAFETY", role: "LEAD", parentKey: "chief.studio", tools: [...llm, "ffprobe", "canon:read"], permissions: { canBlockRelease: true } },
+  { key: "quality.lead", name: "Warden", title: "Head of Quality & Safety", department: "QUALITY_SAFETY", role: "LEAD", parentKey: "chief.studio", tools: [...llm, "ffmpeg-probe", "canon:read"], permissions: { canBlockRelease: true } },
   { key: "quality.canon", name: "Archivist", title: "Canon Validator", department: "QUALITY_SAFETY", role: "SPECIALIST", parentKey: "quality.lead", tools: ["canon:read"], permissions: {} },
   { key: "ops.lead", name: "Keel", title: "Head of Studio Operations", department: "STUDIO_OPERATIONS", role: "LEAD", parentKey: "chief.studio", tools: ["queues", "budgets", "audit"], permissions: {} },
 ];

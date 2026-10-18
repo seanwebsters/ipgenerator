@@ -1,3 +1,4 @@
+import "./fonts";
 import sharp, { type OverlayOptions } from "sharp";
 
 /**

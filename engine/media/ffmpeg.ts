@@ -3,10 +3,15 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { seeded } from "../../lib/util";
+import "./fonts";
 
 const run = promisify(execFile);
-const FFMPEG = () => process.env.FFMPEG_PATH ?? "ffmpeg";
-const FFPROBE = () => process.env.FFPROBE_PATH ?? "ffprobe";
+/**
+ * FFMPEG_PATH, else the system ffmpeg. On Vercel, which has none, the static
+ * build from the ffmpeg-static package (shipped with the functions via
+ * outputFileTracingIncludes in next.config.ts).
+ */
+const FFMPEG = () => process.env.FFMPEG_PATH ?? (process.env.VERCEL ? path.join(process.cwd(), "node_modules", "ffmpeg-static", "ffmpeg") : "ffmpeg");
 
 export interface Shot {
   image: string; // absolute path to a PNG
@@ -128,25 +133,29 @@ export interface ProbeResult {
   meanVolumeDb: number | null;
 }
 
-/** Technical QA: container facts from ffprobe + loudness from volumedetect. */
+/**
+ * Technical QA: container facts and loudness from one ffmpeg decode pass
+ * (stream header + volumedetect), so no separate ffprobe binary is needed.
+ */
 export async function probe(file: string): Promise<ProbeResult> {
-  const { stdout } = await run(FFPROBE(), ["-v", "error", "-show_streams", "-show_format", "-of", "json", file]);
-  const j = JSON.parse(stdout) as { streams: { codec_type: string; codec_name: string; width?: number; height?: number }[]; format: { duration: string } };
-  const v = j.streams.find((s) => s.codec_type === "video");
-  const a = j.streams.find((s) => s.codec_type === "audio");
-  let meanVolumeDb: number | null = null;
-  if (a) {
-    const { stderr } = await run(FFMPEG(), ["-hide_banner", "-i", file, "-af", "volumedetect", "-vn", "-f", "null", "-"], { maxBuffer: 1 << 24 });
-    const m = stderr.match(/mean_volume:\s*(-?[\d.]+) dB/);
-    meanVolumeDb = m ? Number(m[1]) : null;
-  }
+  const args = ["-hide_banner", "-nostats", "-i", file, "-map", "0:a?", "-af", "volumedetect", "-f", "null", "-"];
+  // A file without audio makes ffmpeg exit non-zero after printing the header we need.
+  const stderr = await run(FFMPEG(), args, { maxBuffer: 1 << 24 }).then((r) => r.stderr, (e: { stderr?: string }) => {
+    if (!e.stderr?.includes("Duration:")) throw e;
+    return e.stderr;
+  });
+  const header = stderr.split(/\nOutput #|\nStream mapping:/)[0];
+  const d = header.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
+  const v = header.match(/Stream #\d+:\d+[^:]*: Video: (\w+)[^\n]*?, (\d{2,5})x(\d{2,5})/);
+  const a = header.match(/Stream #\d+:\d+[^:]*: Audio: (\w+)/);
+  const vol = stderr.match(/mean_volume:\s*(-?[\d.]+) dB/);
   return {
-    durationSec: Number(j.format.duration),
-    width: v?.width ?? 0,
-    height: v?.height ?? 0,
-    videoCodec: v?.codec_name ?? null,
-    audioCodec: a?.codec_name ?? null,
-    meanVolumeDb,
+    durationSec: d ? Number(d[1]) * 3600 + Number(d[2]) * 60 + Number(d[3]) : 0,
+    width: v ? Number(v[2]) : 0,
+    height: v ? Number(v[3]) : 0,
+    videoCodec: v?.[1] ?? null,
+    audioCodec: a?.[1] ?? null,
+    meanVolumeDb: a && vol ? Number(vol[1]) : null,
   };
 }
 

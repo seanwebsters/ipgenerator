@@ -1,3 +1,4 @@
+import "./fonts";
 import sharp from "sharp";
 import { seeded } from "../../lib/util";
 

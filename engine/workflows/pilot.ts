@@ -10,7 +10,7 @@ import { generateImage } from "../providers/image";
 import { speak, voiceConfigured } from "../providers/voice";
 import { decide } from "../policy";
 import { enqueue } from "../queue";
-import { putObject, workDir } from "../storage";
+import { localFile, putObject, workDir } from "../storage";
 import { writeBible, type Concepts } from "../tasks/ip";
 import { critiqueScript, packageRelease, writePilot, type PilotScript } from "../tasks/production";
 import { screenOriginality } from "../tasks/originality";
@@ -355,7 +355,7 @@ export const pilot: WorkflowDef<PilotInput> = {
           rightsNotes: voiced ? "Voice from the studio's licensed ElevenLabs library voice; score synthesised in-house." : "Procedural temp score synthesised by FFmpeg in-house.",
           aiGenerated: voiced > 0,
         });
-        return { audioPath: bed, assetId: a.id, voiced };
+        return { assetId: a.id, voiced };
       },
     },
     {
@@ -365,11 +365,13 @@ export const pilot: WorkflowDef<PilotInput> = {
       async run(ctx) {
         const { productionId } = ctx.outputs.script as { productionId: string };
         const { frames, shots } = ctx.outputs.storyboard as { frames: { key: string; durationSec: number }[]; shots: PlannedShot[] };
-        const { audioPath, voiced } = ctx.outputs.audio as { audioPath: string; voiced: number };
+        const { assetId: audioId, voiced } = ctx.outputs.audio as { assetId: string; voiced: number };
         const f = await db.franchise.findUniqueOrThrow({ where: { id: ctx.input.franchiseId } });
         const dir = await workDir(`franchises/${f.id}/${productionId}/animatic-r${ctx.attempt}`);
-        const { localPath } = await import("../storage");
-        const out = await assembleAnimatic({ shots: frames.map((fr) => ({ image: localPath(fr.key), durationSec: fr.durationSec })), cues: cuesFor(shots), audio: audioPath, dir, seed: f.id });
+        // Inputs come from storage, not the earlier step's disk: steps may run on different machines.
+        const audio = await localFile((await db.asset.findUniqueOrThrow({ where: { id: audioId } })).storageKey);
+        const images = await Promise.all(frames.map((fr) => localFile(fr.key)));
+        const out = await assembleAnimatic({ shots: frames.map((fr, i) => ({ image: images[i], durationSec: fr.durationSec })), cues: cuesFor(shots), audio, dir, seed: f.id });
         const cast = await characterIndex(f.id);
         const video = await saveAsset({
           ctx,
@@ -434,8 +436,7 @@ export const pilot: WorkflowDef<PilotInput> = {
         const { videoId } = ctx.outputs.animatic as { videoId: string };
         const f = await db.franchise.findUniqueOrThrow({ where: { id: ctx.input.franchiseId } });
         const video = await db.asset.findUniqueOrThrow({ where: { id: videoId } });
-        const { localPath } = await import("../storage");
-        const tech = await probe(localPath(video.storageKey));
+        const tech = await probe(await localFile(video.storageKey));
         const technical = [
           { check: "Duration 20-240s", pass: tech.durationSec >= 20 && tech.durationSec <= 240, value: `${tech.durationSec.toFixed(1)}s` },
           { check: "1280x720", pass: tech.width === 1280 && tech.height === 720, value: `${tech.width}x${tech.height}` },

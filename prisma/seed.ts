@@ -17,6 +17,10 @@ async function main() {
   const password = process.env.WEBSTER_FOUNDER_PASSWORD ?? "webster-dev";
   const existing = await db.user.findUnique({ where: { email } });
   if (!existing) {
+    // A public deployment must never get the well-known development password.
+    if (!process.env.WEBSTER_FOUNDER_PASSWORD && (process.env.VERCEL || process.env.NODE_ENV === "production")) {
+      throw new Error("Set WEBSTER_FOUNDER_PASSWORD (and WEBSTER_FOUNDER_EMAIL) before the first deploy.");
+    }
     await db.user.create({ data: { email, name: process.env.WEBSTER_FOUNDER_NAME ?? "Founder", role: "FOUNDER", passwordHash: hashPassword(password) } });
     console.log(`Founder account created: ${email} / ${process.env.WEBSTER_FOUNDER_PASSWORD ? "(from WEBSTER_FOUNDER_PASSWORD)" : password}`);
   }

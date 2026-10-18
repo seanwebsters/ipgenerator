@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
+import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { assignVariant } from "@/engine/learning";
+import { engineInline, tick } from "@/engine/runner";
 
 const Event = z.object({
   type: z.enum(["impression", "play", "progress", "complete", "share", "favorite"]),
@@ -9,6 +11,9 @@ const Event = z.object({
   value: z.number().min(0).max(100_000).optional(),
 });
 const Body = z.object({ events: z.array(Event).max(50) });
+
+export const maxDuration = 60;
+let lastTick = 0;
 
 /**
  * Real audience events from WEBSTER WORLD. The viewer id comes from the
@@ -47,5 +52,11 @@ export async function POST(req: Request) {
     });
   if (rows.length) await db.analyticsEvent.createMany({ data: rows });
   await db.viewer.upsert({ where: { id: viewerId }, create: { id: viewerId }, update: {} });
+  // Inline engine: audience traffic also moves due work along (scheduled
+  // ingests, learning reviews), at most once a minute per instance.
+  if (engineInline() && Date.now() - lastTick > 60_000) {
+    lastTick = Date.now();
+    after(() => tick(20_000).catch(() => {}));
+  }
   return Response.json({ accepted: rows.length });
 }

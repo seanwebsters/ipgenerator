@@ -3,7 +3,9 @@ import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSecret } from "@/engine/credentials";
 import { budgetStatus } from "@/engine/metering";
+import { engineInline } from "@/engine/runner";
 import { Wordmark } from "@/components/brand";
+import { EngineHeartbeat } from "@/components/os/live";
 import { MobileNav, OsNav } from "@/components/os/nav";
 import { Badge } from "@/components/ui/badge";
 import { usd } from "@/lib/util";
@@ -24,6 +26,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
   const demoMode = !llmKey && settings.allowDemoProvider;
   return (
     <div className="flex min-h-screen">
+      {engineInline() && <EngineHeartbeat />}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-[#0f0c0a] px-3 py-5 lg:flex">
         <div className="px-2">
           <Wordmark href="/os" />

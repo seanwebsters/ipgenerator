@@ -20,7 +20,7 @@ what is built (Phase 1), how it works, what needs keys or human approval, and wh
       steps, jobs, ledger,       ├─ LLM adapter ── Anthropic (messages.parse + Zod) | DEMO (labelled)
       approvals, events)         ├─ Image adapter ── procedural renderer | OpenAI images
                ▲                 ├─ Voice adapter ── ElevenLabs (licensed library voice)
-               │                 ├─ FFmpeg ── animatic MP4 + WebM, captions, temp score, ffprobe QA
+               │                 ├─ FFmpeg ── animatic MP4 + WebM, captions, temp score, technical QA probe
    WORLD ──────┘                 ├─ Channels ── WEBSTER WORLD | YouTube Data API
    (events API, cookies)         └─ Analytics ── ingest + stats + experiments
 ```
@@ -108,7 +108,7 @@ Every department reads canon through `canonDigest()`. Scripts are validated agai
 | 10 | Storyboard + key art | Visual Development | Shot plan → frames (procedural or OpenAI) with provenance and rights metadata |
 | 11 | Score / voices | Music & Audio | FFmpeg temp score; ElevenLabs library voice if configured |
 | 12 | Animatic | Animation & Video | FFmpeg: Ken Burns, crossfades, burned captions, VTT, MP4 + WebM |
-| 13 | QA | Quality & Safety | ffprobe technical checks, loudness, narrative critique, suitability vs rating, rights, originality; bounded revision |
+| 13 | QA | Quality & Safety | FFmpeg technical probe, loudness, narrative critique, suitability vs rating, rights, originality; bounded revision |
 | 14 | Release package | Marketing | Metadata + AI disclosure built from provenance |
 | 15 | Publish gate | Founder / policy | `PUBLISH` approval with preview, QA report, costs, channel status |
 | 16 | Publish | Marketing | WEBSTER WORLD (WATCH + illustrated READ title); YouTube when connected; otherwise recorded as skipped |

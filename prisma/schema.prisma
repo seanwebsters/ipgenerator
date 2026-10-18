@@ -1010,3 +1010,15 @@ model Revenue {
   note        String    @default("")
   createdAt   DateTime  @default(now())
 }
+
+/// Media bytes for the "db" storage driver (STORAGE_DRIVER=db, the default on
+/// Vercel), so a deployment needs no separate object store. Keys match the
+/// filesystem driver's paths.
+model StoredBlob {
+  key       String   @id
+  data      Bytes
+  mimeType  String
+  bytes     Int
+  checksum  String
+  createdAt DateTime @default(now())
+}

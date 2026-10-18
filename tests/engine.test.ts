@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../lib/db";
 import { BudgetExceededError, CircuitOpenError, MissingCredentialError } from "../lib/errors";
@@ -7,7 +6,7 @@ import { meter } from "../engine/metering";
 import { registerWorkflow, resumeRun, startRun } from "../engine/workflow";
 import { decideApproval } from "../engine/approvals";
 import { drain } from "../engine/worker";
-import { localPath } from "../engine/storage";
+import { statObject } from "../engine/storage";
 import { ingestAll } from "../engine/analytics/ingest";
 import { reviewTitle } from "../engine/learning";
 import "../engine/jobs";
@@ -176,7 +175,7 @@ describe("vertical slice (DEMO provider, real FFmpeg)", () => {
     expect((await db.workflowRun.findUniqueOrThrow({ where: { id: discovery.id } })).status).toBe("COMPLETED");
 
     const video = await db.asset.findFirstOrThrow({ where: { kind: "VIDEO", mimeType: "video/mp4" } });
-    expect(existsSync(localPath(video.storageKey))).toBe(true);
+    expect((await statObject(video.storageKey)).size).toBeGreaterThan(10_000);
     expect(video.durationSec!).toBeGreaterThan(20);
     expect(video.status).toBe("APPROVED");
     expect(await db.asset.count({ where: { kind: "STORYBOARD_FRAME" } })).toBeGreaterThan(5);

@@ -21,7 +21,7 @@ Requirements:
 
 * Node 22
 * PostgreSQL 16
-* FFmpeg with libx264, libvpx-vp9, libopus and libass
+* FFmpeg with libx264, libvpx-vp9, libopus and libass (or set `FFMPEG_PATH` to `node_modules/ffmpeg-static/ffmpeg`)
 
 ```bash
 cp .env.example .env            # set DATABASE_URL (and optionally provider keys)
@@ -35,6 +35,28 @@ npm run dev:all                 # web app + engine worker
 * WEBSTER OS: http://localhost:3000/os. Sign in with `WEBSTER_FOUNDER_EMAIL` / `WEBSTER_FOUNDER_PASSWORD`; the seed defaults to `founder@webster.studio` / `webster-dev`.
 
 In production, run `npm run build && npm start`, plus one or more `npm run worker` processes.
+
+## Deploy to Vercel
+
+The repo is one standard Next.js app, so Vercel imports it as a single project with no `vercel.json`. On Vercel, WEBSTER adapts by itself:
+
+* **No worker process.** The engine runs inside the app (`WEBSTER_ENGINE=inline`). While someone is signed in to WEBSTER OS, it keeps calling `/api/engine/tick`, and audience traffic on WEBSTER WORLD nudges it too. To also run schedules when nobody is around, point a scheduler at `GET /api/engine/tick` with `Authorization: Bearer $CRON_SECRET`.
+* **No object storage.** Media is stored in Postgres (`STORAGE_DRIVER=db`).
+* **No system FFmpeg or fonts.** It uses the bundled `ffmpeg-static` build and the DejaVu fonts in `assets/fonts`.
+* **No manual database step.** `npm run build` runs migrations and the seed before `next build`.
+
+Steps:
+
+1. Import the repo on Vercel.
+2. Under **Optional Integrations**, add **Prisma Postgres**. It sets `DATABASE_URL`.
+3. Add environment variables:
+   * `WEBSTER_FOUNDER_EMAIL`
+   * `WEBSTER_FOUNDER_PASSWORD`
+   * `WEBSTER_SECRET_KEY` (`openssl rand -base64 32`)
+   * optionally `ANTHROPIC_API_KEY`
+4. Deploy, then sign in at `/os`.
+
+Each tick is limited to ~50 seconds, and a job cut off mid-way is retried when its lease expires.
 
 ### Try the slice
 
@@ -95,5 +117,4 @@ engine/            workflows, queue, worker, metering, policy, canon, agents,
                    providers (llm/image/voice), media (ffmpeg/render), channels, analytics, learning
 prisma/            schema, migrations, seed
 tests/             vitest unit + integration
-archive/worldfactory/  the earlier WorldFactory prototype (superseded by WEBSTER)
 ```
