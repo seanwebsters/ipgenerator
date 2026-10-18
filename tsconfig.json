@@ -36,6 +36,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
+    "artifact",
     "node_modules",
     "scripts"
   ]
