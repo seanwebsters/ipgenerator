@@ -6,8 +6,9 @@ import { tick } from "@/engine/runner";
  * processes due jobs for up to ~50s. WEBSTER OS calls POST while a signed-in
  * user has it open; a scheduler can call GET with `Authorization: Bearer
  * $CRON_SECRET` so schedules and delayed reviews also fire when nobody is.
+ * No per-route maxDuration: routes with identical settings share one Vercel
+ * function, which the built-in database (no DATABASE_URL) relies on.
  */
-export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 const BUDGET_MS = 50_000;

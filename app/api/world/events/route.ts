@@ -12,7 +12,6 @@ const Event = z.object({
 });
 const Body = z.object({ events: z.array(Event).max(50) });
 
-export const maxDuration = 60;
 let lastTick = 0;
 
 /**

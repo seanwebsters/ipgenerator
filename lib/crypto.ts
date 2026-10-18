@@ -8,6 +8,8 @@ import path from "node:path";
  * storage/.dev-secret-key so the app works out of the box; production refuses
  * to start without an explicit key.
  */
+let ephemeralKey: Buffer | undefined;
+
 function masterKey(): Buffer {
   const env = process.env.WEBSTER_SECRET_KEY;
   if (env) {
@@ -15,6 +17,9 @@ function masterKey(): Buffer {
     if (key.length !== 32) throw new Error("WEBSTER_SECRET_KEY must be 32 bytes, base64-encoded (openssl rand -base64 32).");
     return key;
   }
+  // The built-in database (no DATABASE_URL) lives only as long as the process,
+  // so a per-process key is enough for the secrets stored in it.
+  if (!process.env.DATABASE_URL) return (ephemeralKey ??= randomBytes(32));
   if (process.env.NODE_ENV === "production") throw new Error("WEBSTER_SECRET_KEY is required in production.");
   const file = path.join(process.cwd(), "storage", ".dev-secret-key");
   if (!existsSync(file)) {

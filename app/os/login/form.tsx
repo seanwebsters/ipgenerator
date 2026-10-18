@@ -5,17 +5,17 @@ import { login } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
-export function LoginForm() {
+export function LoginForm({ demo }: { demo?: { email: string; password: string } }) {
   const [state, action, pending] = useActionState(login, null);
   return (
     <form action={action} className="space-y-4 rounded-2xl border bg-card/80 p-6 backdrop-blur">
       <div className="space-y-1.5">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="username" required />
+        <Input id="email" name="email" type="email" autoComplete="username" defaultValue={demo?.email} required />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" autoComplete="current-password" required />
+        <Input id="password" name="password" type="password" autoComplete="current-password" defaultValue={demo?.password} required />
       </div>
       {state?.error && <p className="text-sm text-red-300">{state.error}</p>}
       <Button className="w-full" disabled={pending}>

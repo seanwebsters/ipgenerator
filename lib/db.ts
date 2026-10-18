@@ -1,17 +1,62 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { PGlite } from "@electric-sql/pglite";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaPGlite } from "pglite-prisma-adapter";
 import { PrismaClient } from "../generated/prisma/client";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+/**
+ * With DATABASE_URL: Postgres via node-postgres.
+ * Without it: a built-in, in-memory Postgres (PGlite) so the app is fully
+ * usable with no setup. It is migrated and seeded on first use, and its data
+ * lasts only as long as the server process (see `embeddedDb`).
+ */
+export const embeddedDb = () => !process.env.DATABASE_URL;
+export const DEMO_FOUNDER = { email: "founder@webster.studio", password: "webster-demo" };
 
-function create() {
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const seeding = new AsyncLocalStorage<true>();
+
+function create(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("DATABASE_URL is not set. Copy .env.example to .env and point it at Postgres.");
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  if (connectionString) return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+
+  // Built-in database. PGlite runs queries in the order they are issued, so
+  // the migrations queued here run before anything else.
+  const pg = new PGlite();
+  const migrated = pg.exec(migrationSql());
+  const base = new PrismaClient({ adapter: new PrismaPGlite(pg) });
+  let ready: Promise<void> | undefined;
+  const seed = async () => {
+    await migrated;
+    const { seedStudio } = await import("./seed");
+    await seedStudio({ ...DEMO_FOUNDER, name: "Founder (demo)" });
+  };
+  // Every operation waits for the seed; the seed's own queries skip the wait.
+  return base.$extends({
+    query: {
+      async $allOperations({ args, query }) {
+        if (!seeding.getStore()) await (ready ??= seeding.run(true, seed));
+        return query(args);
+      },
+    },
+  }) as unknown as PrismaClient;
+}
+
+function migrationSql(): string {
+  const dir = path.join(process.cwd(), "prisma", "migrations");
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .sort()
+    .map((m) => readFileSync(path.join(dir, m, "migration.sql"), "utf8"))
+    .join("\n");
 }
 
 /**
  * Created on first use, so modules that import `db` can load (e.g. during
- * `next build`) before a database is connected.
+ * `next build`) before anything connects.
  */
 function client(): PrismaClient {
   return (globalForPrisma.prisma ??= create());

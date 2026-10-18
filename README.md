@@ -45,7 +45,9 @@ The repo is one standard Next.js app, so Vercel imports it as a single project w
 * **No system FFmpeg or fonts.** It uses the bundled `ffmpeg-static` build and the DejaVu fonts in `assets/fonts`.
 * **No manual database step.** `npm run build` runs migrations and the seed before `next build`.
 
-Steps:
+**No database at all?** It still runs: without `DATABASE_URL`, WEBSTER starts a built-in in-memory Postgres (PGlite), migrates and seeds it, and shows the demo login on `/os/login` (`founder@webster.studio` / `webster-demo`). It's fully usable, but everything resets when the server restarts, and Vercel may run more than one instance, so treat it as a try-out. The same works locally: just leave `DATABASE_URL` unset.
+
+To keep your data:
 
 1. Import the repo on Vercel.
 2. Under **Optional Integrations**, add **Prisma Postgres**. It sets `DATABASE_URL`.

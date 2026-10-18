@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, embeddedDb } from "@/lib/db";
 import { getSecret } from "@/engine/credentials";
 import { budgetStatus } from "@/engine/metering";
 import { engineInline } from "@/engine/runner";
@@ -68,6 +68,11 @@ export default async function HQLayout({ children }: { children: React.ReactNode
           </div>
           <MobileNav />
         </header>
+        {embeddedDb() && (
+          <div className="border-b border-amber-400/20 bg-amber-500/[0.07] px-4 py-2 text-xs text-amber-100 sm:px-6">
+            Temporary demo database: everything here resets when the server restarts. To keep your work, connect a database (on Vercel: Storage → Prisma Postgres) and redeploy.
+          </div>
+        )}
         {demoMode && (
           <div className="border-b border-fuchsia-400/20 bg-fuchsia-500/[0.07] px-4 py-2 text-xs text-fuchsia-100 sm:px-6">
             No LLM provider is configured, so agents use the deterministic DEMO generator. Everything it produces is labelled DEMO and is never published outside WEBSTER WORLD.{" "}
