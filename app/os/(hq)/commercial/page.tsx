@@ -84,7 +84,7 @@ export default async function Commercial() {
         ) : (
           <Empty>No opportunities yet. Franchise Development proposes them after releases.</Empty>
         )}
-        <p className="mt-3 text-xs text-muted-foreground">Merchandise and licensing appear as proposals only. WEBSTER never enters licensing agreements or commercial commitments; those need the founder and real partners.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Merchandise and licensing appear as proposals only. Studio never enters licensing agreements or commercial commitments; those need your approval and real partners.</p>
       </Section>
     </div>
   );

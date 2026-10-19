@@ -14,7 +14,7 @@ export function LiveRefresh({ ms = 3000 }: { ms?: number }) {
 }
 
 /**
- * Inline engine heartbeat: while WEBSTER OS is open, keeps asking the server
+ * Inline engine heartbeat: while the Studio console is open, keeps asking the server
  * to process queued work, one request at a time (see /api/engine/tick).
  */
 export function EngineHeartbeat() {

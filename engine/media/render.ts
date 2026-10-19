@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { seeded } from "../../lib/util";
 
 /**
- * WEBSTER procedural renderer ("webster-procedural"). A deterministic, local,
+ * Studio procedural renderer ("studio-procedural"). A deterministic, local,
  * non-AI illustrator: it composes scenes as SVG from the franchise palette,
  * canon cast colours and the shot description, then rasterises with sharp.
  * Used for storyboards and key art when no image provider is connected,

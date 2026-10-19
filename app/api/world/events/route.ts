@@ -15,7 +15,7 @@ const Body = z.object({ events: z.array(Event).max(50) });
 let lastTick = 0;
 
 /**
- * Real audience events from WEBSTER WORLD. The viewer id comes from the
+ * Real audience events from Studio. The viewer id comes from the
  * httpOnly cookie, never from the client body, and experiment variants are
  * re-derived server-side so they can't be spoofed.
  */

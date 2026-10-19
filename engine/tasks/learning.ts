@@ -24,8 +24,8 @@ export async function proposeExperiment(
   return generateStructured({
     ...meta,
     task: "learning.propose",
-    system: `${HOUSE_STYLE}\nYou are Audience Intelligence. You never invent metrics, never treat correlation as causation, and you say plainly when the sample is too small to conclude anything. Propose exactly one controlled A/B experiment that WEBSTER WORLD can run by randomising viewers.`,
-    prompt: `Title: ${input.title} (${input.franchise})\nLogline: ${input.logline}\nMeasured on WEBSTER WORLD (real events): ${JSON.stringify(input.metrics)}\nSample size (unique viewers): ${input.sampleSize}\n${input.note ? `Data caveat: ${input.note}\n` : ""}Goals: ${JSON.stringify(input.goals)}\nPrior learnings:\n${input.priorLearnings}\n\nState findings with honest confidence, then one hypothesis and a variant title to test.`,
+    system: `${HOUSE_STYLE}\nYou are Audience Intelligence. You never invent metrics, never treat correlation as causation, and you say plainly when the sample is too small to conclude anything. Propose exactly one controlled A/B experiment that Studio can run by randomising viewers.`,
+    prompt: `Title: ${input.title} (${input.franchise})\nLogline: ${input.logline}\nMeasured on Studio (real events): ${JSON.stringify(input.metrics)}\nSample size (unique viewers): ${input.sampleSize}\n${input.note ? `Data caveat: ${input.note}\n` : ""}Goals: ${JSON.stringify(input.goals)}\nPrior learnings:\n${input.priorLearnings}\n\nState findings with honest confidence, then one hypothesis and a variant title to test.`,
     schema: ProposalSchema,
     maxTokens: 2500,
     demo: () => ({
@@ -36,7 +36,7 @@ export async function proposeExperiment(
               ? `Only ${input.sampleSize} unique viewers so far; no reliable conclusion about ${input.title} is possible yet.`
               : `Play rate is ${fmt(input.metrics.playRate)} against a goal of ${fmt(input.goals.playRate)}.`,
           confidence: "LOW" as const,
-          basis: `n=${input.sampleSize} unique viewers on WEBSTER WORLD.`,
+          basis: `n=${input.sampleSize} unique viewers on Studio.`,
         },
       ],
       hypothesis: `A title that names the central promise will raise the share of viewers who start ${input.franchise} after seeing it.`,
@@ -50,14 +50,14 @@ export async function proposeExperiment(
 
 const fmt = (v: number | null | undefined) => (v == null ? "n/a" : `${(v * 100).toFixed(1)}%`);
 
-/* ───────────── Founder Copilot: intent parsing ───────────── */
+/* ───────────── Copilot: intent parsing ───────────── */
 
 export const IntentSchema = z.object({
   action: z.enum(["develop_franchises", "status_report", "pause_autonomy", "unknown"]),
-  brief: z.string().describe("The creative brief to hand the IP Lab, in the founder's words"),
+  brief: z.string().describe("The creative brief to hand the IP Lab, in the user's words"),
   conceptCount: z.number().int().describe("How many concepts to develop (1-8)"),
   prototypeCount: z.number().int().describe("How many of the strongest to prototype (1-3)"),
-  reply: z.string().describe("One sentence telling the founder what will happen"),
+  reply: z.string().describe("One sentence telling the user what will happen"),
 });
 export type Intent = z.infer<typeof IntentSchema>;
 
@@ -91,8 +91,8 @@ export function parseIntentLocally(text: string): Intent {
 export async function parseIntent(text: string) {
   return generateStructured({
     task: "copilot.intent",
-    system: `${HOUSE_STYLE}\nYou are the Chief Studio Agent's command parser. Map the founder's instruction to an action. Never invent permissions: you only start workflows that still pass approval gates.`,
-    prompt: `Founder: "${text}"`,
+    system: `${HOUSE_STYLE}\nYou are the Chief Studio Agent's command parser. Map the user's instruction to an action. Never invent permissions: you only start workflows that still pass approval gates.`,
+    prompt: `Request: "${text}"`,
     schema: IntentSchema,
     maxTokens: 800,
     effort: "low",

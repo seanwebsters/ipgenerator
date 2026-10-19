@@ -1,15 +1,15 @@
-# WEBSTER — Architecture
+# Studio — Architecture
 
-WEBSTER is an entertainment company whose production runs on an autonomous studio. This document describes
+Studio is an entertainment company whose production runs on an autonomous studio. This document describes
 what is built (Phase 1), how it works, what needs keys or human approval, and what comes next.
 
 ## 1. Three products, one codebase
 
 | Product | Where | What it is |
 | --- | --- | --- |
-| **WEBSTER WORLD** | `/`, `/watch`, `/read`, `/listen`, `/play`, `/f/[slug]`, `/library`, `/profile`, `/about` | The consumer destination, organised around franchises. Anonymous viewer cookie, maturity limits, favourites, continue-watching, honest per-title disclosures. |
-| **WEBSTER OS** | `/os/*` | The founder's command center: Home, IP Universe, Studio Floor, Agent Workforce, Content Calendar, Intelligence, Commercial, Founder Copilot, Approval Inbox, Settings. Session auth + roles (FOUNDER, PRODUCER, ANALYST). |
-| **WEBSTER ENGINE** | `engine/*`, `npm run worker` | Durable workflows, Postgres job queue, agents, provider adapters, metering, media assembly, publishing, analytics and learning. |
+| **Studio** | `/`, `/watch`, `/read`, `/listen`, `/play`, `/f/[slug]`, `/library`, `/profile`, `/about` | The consumer destination, organised around franchises. Anonymous viewer cookie, maturity limits, favourites, continue-watching, honest per-title disclosures. |
+| **the Studio console** | `/os/*` | The founder's command center: Home, IP Universe, Studio Floor, Agent Workforce, Content Calendar, Intelligence, Commercial, Founder Copilot, Approval Inbox, Settings. Session auth + roles (FOUNDER, PRODUCER, ANALYST). |
+| **Studio engine** | `engine/*`, `npm run worker` | Durable workflows, Postgres job queue, agents, provider adapters, metering, media assembly, publishing, analytics and learning. |
 
 ```
  Founder ──► OS (Next.js server components + server actions)
@@ -21,7 +21,7 @@ what is built (Phase 1), how it works, what needs keys or human approval, and wh
       approvals, events)         ├─ Image adapter ── procedural renderer | OpenAI images
                ▲                 ├─ Voice adapter ── ElevenLabs (licensed library voice)
                │                 ├─ FFmpeg ── animatic MP4 + WebM, captions, temp score, technical QA probe
-   WORLD ──────┘                 ├─ Channels ── WEBSTER WORLD | YouTube Data API
+   WORLD ──────┘                 ├─ Channels ── Studio | YouTube Data API
    (events API, cookies)         └─ Analytics ── ingest + stats + experiments
 ```
 
@@ -55,7 +55,7 @@ The approval policy enforces the autonomy modes. Some actions need the founder i
 * mature content;
 * anything elevated-risk.
 
-DEMO output is never published outside WEBSTER WORLD.
+DEMO output is never published outside Studio.
 
 ### Agents (`engine/agents.ts`)
 There are 13 permanent departments. Each has a lead agent and specialists, with declared tools and permissions. Each greenlit franchise gets a persistent **Franchise Director** agent. Phase 1 operating departments:
@@ -85,7 +85,7 @@ It also has `CanonRelation` edges and `CanonRevision` history. Each entity has a
 Every department reads canon through `canonDigest()`. Scripts are validated against canon deterministically. `applyChange()` creates a new version and flags every dependent asset (`AssetEntity`) as `NEEDS_REVIEW`.
 
 ### Learning engine (`engine/learning.ts`, `engine/analytics/*`)
-* Raw `AnalyticsEvent`s come from WEBSTER WORLD, plus YouTube Analytics when connected. The viewer id is taken from an httpOnly cookie, and experiment variants are re-derived server-side.
+* Raw `AnalyticsEvent`s come from Studio, plus YouTube Analytics when connected. The viewer id is taken from an httpOnly cookie, and experiment variants are re-derived server-side.
 * Ingestion produces `MetricSnapshot`s. Play rates carry 95% Wilson intervals.
 * The learning review records `Learning`s. Their confidence is capped by sample size, whatever the model says. The review then proposes one `Experiment`: an A/B test with hypothesis, design, metric, power-based sample size, confounders and variants.
 * Experiments run by deterministic per-viewer assignment. They are evaluated with a two-proportion z-test and **never** conclude below the planned sample size.
@@ -111,7 +111,7 @@ Every department reads canon through `canonDigest()`. Scripts are validated agai
 | 13 | QA | Quality & Safety | FFmpeg technical probe, loudness, narrative critique, suitability vs rating, rights, originality; bounded revision |
 | 14 | Release package | Marketing | Metadata + AI disclosure built from provenance |
 | 15 | Publish gate | Founder / policy | `PUBLISH` approval with preview, QA report, costs, channel status |
-| 16 | Publish | Marketing | WEBSTER WORLD (WATCH + illustrated READ title); YouTube when connected; otherwise recorded as skipped |
+| 16 | Publish | Marketing | Studio (WATCH + illustrated READ title); YouTube when connected; otherwise recorded as skipped |
 | 17 | Measure | Audience Intelligence | Ingest schedule + delayed learning review |
 | 18 | Learn | Audience Intelligence | Findings + experiment proposal → approval or auto-start per policy |
 
@@ -124,7 +124,7 @@ Every department reads canon through `canonDigest()`. Scripts are validated agai
 | Storyboards / key art | ✅ procedural renderer (non-AI, owned) | `OPENAI_API_KEY` + route `visual.*` → `openai` for AI imagery |
 | Animatic assembly, captions, QA | ✅ FFmpeg | — |
 | Voiced dialogue | — | `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` (licensed library voice) |
-| Publishing to WEBSTER WORLD | ✅ | Founder approval (Assisted) or policy (Supervised/High) |
+| Publishing to Studio | ✅ | Founder approval (Assisted) or policy (Supervised/High) |
 | Publishing to YouTube | — | OAuth client + refresh token; DEMO content is never uploaded; default privacy `private` |
 | YouTube analytics ingest | — | Same OAuth (`yt-analytics.readonly`) |
 | TikTok, Instagram | — | Not implemented: requires audited apps (see matrix) |
@@ -159,7 +159,7 @@ Every department reads canon through `canonDigest()`. Scripts are validated agai
 
 **Phase 1 (this build).** The vertical slice end to end, along with:
 
-* Founder OS (all ten sections) and WEBSTER WORLD;
+* Founder OS (all ten sections) and Studio;
 * durable engine, metering, autonomy policy;
 * tests and CI.
 
@@ -176,7 +176,7 @@ Every department reads canon through `canonDigest()`. Scripts are validated agai
 * **New formats:**
   * Episodes reuse the pilot pipeline with continuity context.
   * Comics (`franchise.comic`) are composed from *approved* storyboards into print-size pages and published as READ titles.
-  * Interactive stories (`franchise.interactive`) are branching graphs validated as software: no dangling choices, dead ends, unreachable nodes or inescapable loops; at least two endings; playthroughs counted. Each node is illustrated, and the result is published as a PLAY title with a player on WEBSTER WORLD.
+  * Interactive stories (`franchise.interactive`) are branching graphs validated as software: no dangling choices, dead ends, unreachable nodes or inescapable loops; at least two endings; playthroughs counted. Each node is illustrated, and the result is published as a PLAY title with a player on Studio.
 * **Shared release steps:** all formats share the publication gate, publishing and measurement steps. Disclosures are generated from provenance.
 * **Autonomous flywheel (`studio.flywheel`):** off by default. It starts development cycles for idle live franchises on an interval, and each cycle still ends at the founder.
 * **Learning hygiene:** there is a minimum audience before experimenting (`LEARNING_MIN_VIEWERS`, default 20) and one open experiment per franchise.
@@ -201,7 +201,7 @@ Every department reads canon through `canonDigest()`. Scripts are validated agai
 ## 8. Honesty rules enforced in code
 
 * There are no seeded franchises, metrics or revenue. Everything visible was produced or measured by the system.
-* DEMO output is labelled at every level: concept, franchise, script, release, title. It never leaves WEBSTER WORLD.
+* DEMO output is labelled at every level: concept, franchise, script, release, title. It never leaves Studio.
 * Unconnected channels are recorded as `SKIPPED_NOT_CONNECTED` with setup instructions, never as a success.
 * Every title shows a disclosure built from asset provenance. YouTube uploads set `containsSyntheticMedia`.
 * Confidence is capped by sample size. Experiments cannot conclude below their planned sample. QA traffic is flagged.

@@ -243,7 +243,7 @@ export async function advance(runId: string): Promise<void> {
         db.workflowRun.update({ where: { id: runId }, data: { status: "WAITING_APPROVAL" } }),
         persistState(),
       ]);
-      await ctx.log("Waiting for founder approval");
+      await ctx.log("Waiting for your approval");
       return;
     }
     if (sig instanceof SkipSignal) {

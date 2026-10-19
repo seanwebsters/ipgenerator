@@ -13,7 +13,7 @@ export interface AgentSpec {
 }
 
 export const DEPARTMENTS: { key: Department; name: string; blurb: string; phase: 1 | 2 }[] = [
-  { key: "CHIEF_STUDIO", name: "Chief Studio", blurb: "Portfolio strategy, budgets, priorities and founder reporting.", phase: 1 },
+  { key: "CHIEF_STUDIO", name: "Chief Studio", blurb: "Portfolio strategy, budgets, priorities and reporting.", phase: 1 },
   { key: "CULTURAL_INTELLIGENCE", name: "Cultural Intelligence", blurb: "Opportunity briefs with recorded evidence.", phase: 1 },
   { key: "ORIGINAL_IP_LAB", name: "Original IP Lab", blurb: "Original franchises, canon bibles and scoring.", phase: 1 },
   { key: "WRITERS_ROOM", name: "Writers' Room", blurb: "Scripts in every format, held to canon.", phase: 1 },

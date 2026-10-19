@@ -34,7 +34,7 @@ export default async function Agents() {
           <div className="grid size-12 place-items-center rounded-full bg-brass font-mark text-lg font-bold text-background">A</div>
           <div className="flex-1">
             <div className="font-display text-2xl">{chief.name} · {chief.title}</div>
-            <div className="text-sm text-muted-foreground">Coordinates departments, portfolio, budgets and founder reporting. Delegates through durable workflows.</div>
+            <div className="text-sm text-muted-foreground">Coordinates departments, portfolio, budgets and reporting. Delegates through durable workflows.</div>
           </div>
           <AgentStats s={statsFor(chief.key)} />
         </div>

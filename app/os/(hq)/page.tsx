@@ -33,7 +33,7 @@ export default async function Home() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Franchises" value={franchises.length} hint={`${franchises.filter((f) => f.status === "ACTIVE").length} live`} />
-        <Stat label="Released titles" value={titles.length} hint="on WEBSTER WORLD" />
+        <Stat label="Released titles" value={titles.length} hint="on Studio" />
         <Stat label="Active productions" value={runs.filter((r) => r.status === "RUNNING").length} hint={`${runs.length} open runs`} />
         <Stat label="Awaiting you" value={approvals.length} tone={approvals.length ? "var(--ember)" : undefined} hint="decisions" />
         <Stat label="Spend today" value={usd(budget.day)} hint={`cap ${usd(budget.dailyCap)}`} />
@@ -88,7 +88,7 @@ export default async function Home() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Section title="Portfolio performance (WEBSTER WORLD, measured)" action={<Link href="/os/intelligence" className="text-xs text-primary">Intelligence →</Link>}>
+        <Section title="Portfolio performance (Studio, measured)" action={<Link href="/os/intelligence" className="text-xs text-primary">Intelligence →</Link>}>
           {titles.length ? (
             <div className="space-y-3">
               {titles.map((t, i) => {

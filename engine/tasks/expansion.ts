@@ -29,7 +29,7 @@ export async function proposeExpansion(
   return generateStructured({
     ...meta,
     task: "franchise.opportunities",
-    system: `${HOUSE_STYLE}\nYou are Head of Franchise Development. You propose how a franchise should grow next, with honest business reasoning. When evidence is thin, say so and prefer cheap, learnable bets. Licensing and merchandise are proposals only — WEBSTER never makes external commitments without the founder.`,
+    system: `${HOUSE_STYLE}\nYou are Head of Franchise Development. You propose how a franchise should grow next, with honest business reasoning. When evidence is thin, say so and prefer cheap, learnable bets. Licensing and merchandise are proposals only — Studio never makes external commitments without human approval.`,
     prompt: `Franchise: ${input.canon.title} (${input.canon.ageRating})\nSynopsis: ${input.canon.synopsis}\nCharacters: ${input.canon.characters.map((c) => c.name).join(", ")}\nAlready released: ${input.released.join("; ") || "nothing yet"}\n\nMeasured evidence:\n${input.evidence}\n\nLearnings:\n${input.learnings}\n\nPropose 4 expansion opportunities. Include at least one each of EPISODE, COMIC and INTERACTIVE (the formats the studio can produce now).`,
     schema: OpportunitySchema,
     maxTokens: 4000,
@@ -47,7 +47,7 @@ export function demoExpansion(c: CanonDigest, evidence: string): ExpansionOpport
       { kind: "EPISODE", title: `${c.title}: Episode 2`, rationale: `${basis} A second episode tests whether viewers return for ${lead}.`, direction: `${second} takes the lead while ${lead} keeps the promise from the pilot.`, risks: ["Small audience may not support a series read", "Continuity with the pilot must hold"] },
       { kind: "COMIC", title: `${c.title}: The Illustrated Pilot`, rationale: `${basis} Reuses approved storyboard art, so the marginal cost is near zero.`, direction: "Lay out the pilot as a four-panel-per-page comic with the original dialogue.", risks: ["Animatic framing may read stiffly as comic panels"] },
       { kind: "INTERACTIVE", title: `${c.title}: Choose the Tide`, rationale: `${basis} An interactive story measures which choices audiences make, informing future arcs.`, direction: `Let the reader guide ${lead} through one night with three different endings.`, risks: ["Branch quality varies", "Needs playtesting"] },
-      { kind: "MERCH", title: `${lead} keepsake lantern`, rationale: "Proposal only. Merchandise needs licensing partners and founder approval; no commitment is made.", direction: "Concept sketch only.", risks: ["No validated demand yet"] },
+      { kind: "MERCH", title: `${lead} keepsake lantern`, rationale: "Proposal only. Merchandise needs licensing partners and your approval; no commitment is made.", direction: "Concept sketch only.", risks: ["No validated demand yet"] },
     ],
   };
 }

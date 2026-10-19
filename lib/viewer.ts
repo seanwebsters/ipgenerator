@@ -6,7 +6,7 @@ export const VIEWER_COOKIE = "wb_viewer";
 const ORDER = ["ALL", "AGE_7", "AGE_13", "AGE_16", "AGE_18"] as const;
 export type Rating = (typeof ORDER)[number];
 
-/** WEBSTER WORLD viewer (anonymous cookie set by proxy.ts). */
+/** Studio viewer (anonymous cookie set by proxy.ts). */
 export async function currentViewer() {
   const id = (await cookies()).get(VIEWER_COOKIE)?.value;
   if (!id) return null;

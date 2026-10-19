@@ -32,7 +32,7 @@ export async function currentUser() {
   return s.user;
 }
 
-/** Role-based access for WEBSTER OS. FOUNDER > PRODUCER > ANALYST. */
+/** Role-based access for the Studio console. FOUNDER > PRODUCER > ANALYST. */
 const RANK: Record<Role, number> = { FOUNDER: 3, PRODUCER: 2, ANALYST: 1, VIEWER: 0 };
 
 export async function requireRole(min: Role = "ANALYST") {

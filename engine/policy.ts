@@ -4,8 +4,8 @@ import type { ApprovalKind, AutonomyMode } from "../generated/prisma/client";
 /**
  * Approval policy. Decides whether an action needs a human or is
  * pre-authorised under the current autonomy mode. Hard rules first:
- * new IP, rights, strategy and canon changes ALWAYS need the founder, and
- * DEMO output is never published outside WEBSTER WORLD.
+ * new IP, rights, strategy and canon changes ALWAYS need a human, and
+ * DEMO output is never published outside Studio.
  */
 export interface PolicyInput {
   kind: ApprovalKind;
@@ -32,7 +32,7 @@ export async function decide(input: PolicyInput): Promise<PolicyDecision> {
   const human = (reason: string): PolicyDecision => ({ requiresHuman: true, reason, mode });
   const auto = (reason: string): PolicyDecision => ({ requiresHuman: false, reason, mode });
 
-  if (ALWAYS_HUMAN.includes(input.kind)) return human(`${input.kind} always requires founder approval.`);
+  if (ALWAYS_HUMAN.includes(input.kind)) return human(`${input.kind} always requires your approval.`);
   if (input.risk && input.risk !== "normal") return human(`Risk is ${input.risk}.`);
   if (mode === "ASSISTED") return human("Assisted mode: every publication, spend and experiment needs approval.");
 
@@ -43,13 +43,13 @@ export async function decide(input: PolicyInput): Promise<PolicyDecision> {
 
   const external = (input.channels ?? []).filter((c) => !INTERNAL_CHANNELS.has(c));
   if (input.kind === "EXPERIMENT") {
-    return external.length ? human("Experiments on external platforms need approval.") : auto("Internal WEBSTER WORLD experiment within policy.");
+    return external.length ? human("Experiments on external platforms need approval.") : auto("Internal Studio experiment within policy.");
   }
 
   if (input.kind === "PUBLISH") {
     if (input.ageRating === "AGE_18") return human("Mature content always needs approval.");
     if (input.isDemo && external.length) return human("DEMO output is never auto-published to external platforms.");
-    if (external.length && mode === "SUPERVISED") return human("Supervised mode pre-authorises WEBSTER WORLD only.");
+    if (external.length && mode === "SUPERVISED") return human("Supervised mode pre-authorises Studio only.");
     const since = new Date(Date.now() - 24 * 3600_000);
     const today = await db.approval.count({ where: { kind: "PUBLISH", decidedBy: "policy", decidedAt: { gte: since } } });
     if (today >= s.autoPublishPerDay) return human(`Daily pre-authorised publishing limit (${s.autoPublishPerDay}) reached.`);

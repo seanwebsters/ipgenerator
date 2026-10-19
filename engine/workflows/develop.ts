@@ -7,7 +7,7 @@ import { registerWorkflow, startRun, type WorkflowDef } from "../workflow";
 
 /**
  * Franchise Development: measured evidence → proposals with cost estimates
- * derived from actual production spend → founder strategy decision →
+ * derived from actual production spend → strategy decision →
  * commission the chosen productions. This is the EXPAND step of the flywheel.
  */
 export interface DevelopInput {
@@ -71,7 +71,7 @@ export const develop: WorkflowDef<DevelopInput> = {
               evidence: { direction: o.direction, risks: o.risks, evidence, provider: res.provider, isDemo: res.isDemo } as Prisma.InputJsonValue,
               estCostUsd: est == null ? null : new Prisma.Decimal(est.toFixed(4)),
               estBasis: !producible
-                ? "Proposal only: not producible by the studio yet; would need partners and founder approval."
+                ? "Proposal only: not producible by the studio yet; would need partners and your approval."
                 : cost.mean == null
                   ? "No completed runs measured yet; cost unknown."
                   : `Mean of ${cost.n} measured pilot run(s) × ${factor}${cost.mean === 0 ? " (runs so far used $0 DEMO/local providers)" : ""}.`,
@@ -89,7 +89,7 @@ export const develop: WorkflowDef<DevelopInput> = {
     {
       key: "decide",
       agent: "chief.studio",
-      title: "Founder strategy decision",
+      title: "Strategy decision",
       async run(ctx) {
         const { opportunityIds } = ctx.outputs.propose as { opportunityIds: string[] };
         const opps = await db.opportunity.findMany({ where: { id: { in: opportunityIds } }, orderBy: { priority: "desc" } });
@@ -106,7 +106,7 @@ export const develop: WorkflowDef<DevelopInput> = {
         });
         if (!outcome.approved) {
           await db.opportunity.updateMany({ where: { id: { in: opportunityIds }, status: "PROPOSED" }, data: { status: "DECLINED" } });
-          ctx.cancel(outcome.note ? `Founder declined: ${outcome.note}` : "Founder declined all opportunities.");
+          ctx.cancel(outcome.note ? `Declined: ${outcome.note}` : "Declined all opportunities.");
         }
         const selected = ((outcome.decision?.selected as string[]) ?? []).filter((id) => producible.some((o) => o.id === id));
         if (!selected.length) ctx.cancel("Nothing selected.");

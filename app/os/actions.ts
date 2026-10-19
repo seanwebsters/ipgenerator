@@ -25,7 +25,7 @@ export async function login(_: unknown, form: FormData) {
   redirect("/os");
 }
 
-/** Founder Copilot: natural language -> intent -> durable workflow. */
+/** Copilot: natural language -> intent -> durable workflow. */
 export async function runCommand(_: unknown, form: FormData) {
   const user = await requireRole("PRODUCER");
   const text = String(form.get("command") ?? "").trim();
@@ -172,7 +172,7 @@ export async function refreshChannelStatus() {
 
 const EDITABLE = ["name", "appearance", "motivation", "flaw", "voice", "color"] as const;
 
-/** Propose a change to an established canon character. Applying it needs founder approval. */
+/** Propose a change to an established canon character. Applying it needs your approval. */
 export async function proposeCanonChange(form: FormData) {
   const user = await requireRole("PRODUCER");
   const entity = await db.canonEntity.findUniqueOrThrow({ where: { id: String(form.get("entityId")) }, include: { franchise: true, assets: true } });
@@ -190,7 +190,7 @@ export async function proposeCanonChange(form: FormData) {
     const clash = await db.canonEntity.findFirst({ where: { franchiseId: entity.franchiseId, type: entity.type, name: { equals: changes.name, mode: "insensitive" }, id: { not: entity.id } } });
     if (clash) redirect(`${back}?canon=duplicate-name`);
   }
-  const reason = String(form.get("reason") ?? "").trim() || "Founder edit";
+  const reason = String(form.get("reason") ?? "").trim() || "Manual edit";
   await db.approval.create({
     data: {
       kind: "CANON_CHANGE",

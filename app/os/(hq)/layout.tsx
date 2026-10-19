@@ -30,7 +30,6 @@ export default async function HQLayout({ children }: { children: React.ReactNode
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-[#0f0c0a] px-3 py-5 lg:flex">
         <div className="px-2">
           <Wordmark href="/os" />
-          <div className="ml-[38px] mt-0.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brass">Studio OS</div>
         </div>
         <div className="mt-8 flex-1">
           <OsNav pending={pending} />
@@ -43,7 +42,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
           <div className="h-1 rounded-full bg-white/5">
             <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (budget.day / Math.max(budget.dailyCap, 0.0001)) * 100)}%` }} />
           </div>
-          <Link href="/" className="block pt-1 text-muted-foreground hover:text-foreground">Open WEBSTER WORLD ↗</Link>
+          <Link href="/" className="block pt-1 text-muted-foreground hover:text-foreground">Open the site ↗</Link>
         </div>
       </aside>
       <div className="min-w-0 flex-1">
@@ -60,7 +59,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
               )}
               {running > 0 && <Badge variant="success"><span className="size-1.5 animate-pulse rounded-full bg-emerald-300" /> {running} running</Badge>}
               <Link href="/os/settings"><Badge variant="brass">{MODE_LABEL[settings.autonomyMode]}</Badge></Link>
-              <span className="hidden text-xs text-muted-foreground sm:inline">{user.name} · {user.role.toLowerCase()}</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">{user.name}</span>
               {!embeddedDb() && (
                 <form action="/api/auth/logout" method="post">
                   <button className="text-xs text-muted-foreground hover:text-foreground">Sign out</button>
@@ -77,7 +76,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
         )}
         {demoMode && (
           <div className="border-b border-fuchsia-400/20 bg-fuchsia-500/[0.07] px-4 py-2 text-xs text-fuchsia-100 sm:px-6">
-            No LLM provider is configured, so agents use the deterministic DEMO generator. Everything it produces is labelled DEMO and is never published outside WEBSTER WORLD.{" "}
+            No LLM provider is configured, so agents use the deterministic DEMO generator. Everything it produces is labelled DEMO and is never published outside Studio.{" "}
             <Link href="/os/settings" className="underline">Connect Anthropic</Link>
           </div>
         )}

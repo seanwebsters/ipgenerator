@@ -114,7 +114,7 @@ export const discovery: WorkflowDef<DiscoveryInput> = {
     {
       key: "greenlight",
       agent: "chief.studio",
-      title: "Founder greenlight (new IP)",
+      title: "Greenlight (new IP)",
       async run(ctx) {
         const { conceptIds } = ctx.outputs.score as { conceptIds: string[] };
         const concepts = await db.concept.findMany({ where: { id: { in: conceptIds } }, orderBy: { rank: "asc" } });
@@ -126,7 +126,7 @@ export const discovery: WorkflowDef<DiscoveryInput> = {
           payload: { maxSelections: ctx.input.prototypeCount, briefId: ctx.input.briefId },
           risk: concepts.some((c) => (c.resemblanceFlags as unknown[]).length) ? "elevated" : "normal",
         });
-        if (!outcome.approved) ctx.cancel(outcome.note ? `Founder declined: ${outcome.note}` : "Founder declined all concepts.");
+        if (!outcome.approved) ctx.cancel(outcome.note ? `Declined: ${outcome.note}` : "Declined all concepts.");
         const selected = ((outcome.decision?.selected as string[]) ?? []).filter((id) => conceptIds.includes(id)).slice(0, ctx.input.prototypeCount);
         if (!selected.length) ctx.cancel("No concepts selected.");
         await db.concept.updateMany({ where: { id: { in: selected } }, data: { status: "SELECTED" } });

@@ -58,8 +58,8 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   }
 
   const png = await meter(
-    { provider: "procedural", model: "webster-procedural-v1", task: req.task, runId: req.runId, stepKey: req.stepKey, agentKey: req.agentKey, estimateUsd: 0 },
+    { provider: "procedural", model: "studio-procedural-v1", task: req.task, runId: req.runId, stepKey: req.stepKey, agentKey: req.agentKey, estimateUsd: 0 },
     async () => ({ result: await renderPng(req.scene), costUsd: 0, units: 1, unitLabel: "frame" }),
   );
-  return { png, provider: "procedural", model: "webster-procedural-v1", aiGenerated: false, rightsNotes: "Rendered by WEBSTER's in-house procedural renderer. Owned outright; no third-party model involved." };
+  return { png, provider: "procedural", model: "studio-procedural-v1", aiGenerated: false, rightsNotes: "Rendered by Studio's in-house procedural renderer. Owned outright; no third-party model involved." };
 }

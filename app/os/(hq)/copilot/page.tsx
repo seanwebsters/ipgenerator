@@ -10,7 +10,7 @@ export default async function Copilot() {
   const briefs = await db.brief.findMany({ include: { runs: true, concepts: true }, orderBy: { createdAt: "desc" }, take: 10 });
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <PageHeader eyebrow="Founder copilot" title="Direct the studio in plain language" intro="Commands become durable workflows owned by the Chief Studio Agent. They still pass every budget cap and approval gate — the copilot cannot grant itself permissions." />
+      <PageHeader eyebrow="Copilot" title="Direct the studio in plain language" intro="Commands become durable workflows owned by the Chief Studio Agent. They still pass every budget cap and approval gate — the copilot cannot grant itself permissions." />
       <CommandBar big />
       <Section title="Briefs">
         <div className="space-y-3">

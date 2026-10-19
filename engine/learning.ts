@@ -5,7 +5,7 @@ import { decide } from "./policy";
 import { learningsFor } from "./tasks/common";
 import { proposeExperiment } from "./tasks/learning";
 
-/** Default goals for a pilot on WEBSTER WORLD. Founder-editable later. */
+/** Default goals for a pilot on Studio. Editable later. */
 export const GOALS = { playRate: 0.35, completionRate: 0.5 };
 /** Below this many unique viewers the agent records "insufficient data" instead of proposing tests. */
 const MIN_VIEWERS = () => Number(process.env.LEARNING_MIN_VIEWERS ?? 20);
@@ -76,7 +76,7 @@ export async function reviewTitle(titleId: string) {
       titleId,
       hypothesis: res.data.hypothesis,
       design: { type: "ab", metric: res.data.metric, unit: "viewer", allocation: { A: 0.5, B: 0.5 }, alpha: 0.05, power: 0.8, mde: 0.1, minSamplePerArm: minPerArm, maxDays: 14, baseline } as Prisma.InputJsonValue,
-      conditions: { channel: "webster-world", surface: "home + franchise rows", audience: "all WEBSTER WORLD viewers allowed to see this rating" } as Prisma.InputJsonValue,
+      conditions: { channel: "webster-world", surface: "home + franchise rows", audience: "all Studio viewers allowed to see this rating" } as Prisma.InputJsonValue,
       confounders: res.data.confounders,
       createdBy: "agent:audience.lead",
       variants: {
@@ -149,7 +149,7 @@ export async function evaluateExperiments() {
                 : `${conclusion === "VARIANT_BETTER" ? "Variant" : "Control"} title performed better on ${d.metric} (effect ${(test!.diff * 100).toFixed(1)} pts, p=${test!.pValue.toFixed(3)}).`,
           evidence: { arms, test } as unknown as Prisma.InputJsonValue,
           confidence: confidenceFor(n, test?.pValue),
-          decision: conclusion === "VARIANT_BETTER" ? "Recommend adopting the variant title (founder applies)." : "Keep the current title.",
+          decision: conclusion === "VARIANT_BETTER" ? "Recommend adopting the variant title (you apply it)." : "Keep the current title.",
           followUp: "Test poster variants next, holding title constant.",
           createdBy: "agent:audience.lead",
         },

@@ -70,7 +70,7 @@ describe("expansion cycle (integration)", () => {
     return db.franchise.findFirstOrThrow();
   }
 
-  it("develop -> founder picks episode, comic and interactive -> all three ship to WEBSTER WORLD", async () => {
+  it("develop -> user picks episode, comic and interactive -> all three ship to the Studio site", async () => {
     const f = await publishedFranchise();
     expect(f.status).toBe("ACTIVE");
 

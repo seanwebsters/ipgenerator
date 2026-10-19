@@ -26,7 +26,7 @@ export default async function FranchisePage({ params }: { params: Promise<{ slug
             <div className="text-xs font-semibold uppercase tracking-[0.35em] text-brass">{f.universe?.name ?? f.genre}</div>
             <h1 className="font-display mt-3 text-6xl leading-[0.9] sm:text-8xl">{f.title}</h1>
             <p className="mt-5 text-lg text-foreground/85">{f.synopsis || f.logline}</p>
-            {f.isDemo && <p className="mt-3 inline-block rounded-full bg-fuchsia-500/20 px-3 py-1 text-xs text-fuchsia-200">DEMO world — produced with WEBSTER's demo generator to show the pipeline</p>}
+            {f.isDemo && <p className="mt-3 inline-block rounded-full bg-fuchsia-500/20 px-3 py-1 text-xs text-fuchsia-200">DEMO world — produced with Studio's demo generator to show the pipeline</p>}
           </div>
         </div>
       </section>

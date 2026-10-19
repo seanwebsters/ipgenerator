@@ -6,7 +6,7 @@ import { startRun } from "./workflow";
  * Chief Studio flywheel tick. When enabled, it starts a Franchise
  * Development cycle for each live franchise that is idle (no open runs, no
  * pending decisions) and hasn't been developed within the configured
- * interval. Every cycle still ends at a founder STRATEGY approval, and every
+ * interval. Every cycle still ends at a human STRATEGY approval, and every
  * production it commissions still passes QA and publication gates.
  */
 export async function flywheelTick() {

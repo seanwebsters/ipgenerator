@@ -1,6 +1,6 @@
 // End-to-end vertical slice through the real UI, with screenshots.
 // Requires: web (`npm start`) and worker (`npm run worker`) running.
-// Viewer sessions created here use "qa-" viewer ids, which WEBSTER tags as
+// Viewer sessions created here use "qa-" viewer ids, which Studio tags as
 // internal QA traffic everywhere metrics are shown.
 // Usage: node scripts/slice.mjs [baseUrl]
 import { chromium } from "playwright";
@@ -9,8 +9,8 @@ import { mkdir } from "node:fs/promises";
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const OUT = new URL("../docs/screenshots/", import.meta.url).pathname;
 await mkdir(OUT, { recursive: true });
-const EMAIL = process.env.WEBSTER_FOUNDER_EMAIL ?? "founder@webster.studio";
-const PASSWORD = process.env.WEBSTER_FOUNDER_PASSWORD ?? "webster-dev";
+const EMAIL = process.env.WEBSTER_FOUNDER_EMAIL ?? "admin@studio.local";
+const PASSWORD = process.env.WEBSTER_FOUNDER_PASSWORD ?? "studio-dev";
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium" });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -110,7 +110,7 @@ await waitFor("releases", async () => {
 });
 await shot("07-calendar");
 
-// 6. Consumer side: WEBSTER WORLD now has real releases.
+// 6. Consumer side: Studio now has real releases.
 await go("/");
 await shot("08-world-home");
 await shot("09-world-home-full", { fullPage: true });

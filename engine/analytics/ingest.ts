@@ -5,7 +5,7 @@ import { videoMetrics, youtubeConfigured } from "../channels/youtube";
 import { twoProportion, wilson } from "./stats";
 
 /**
- * Aggregate raw WEBSTER WORLD events into per-title snapshots, and pull
+ * Aggregate raw Studio events into per-title snapshots, and pull
  * YouTube Analytics for YouTube publications when connected. Nothing here
  * fabricates numbers: a title with no events gets a snapshot of zeros and
  * sampleSize 0, which downstream logic treats as "insufficient data".
@@ -84,7 +84,7 @@ export async function ingestAll() {
   return { titles: titles.length, youtube };
 }
 
-/** Per-arm counts for a running A/B experiment on a WEBSTER WORLD title. */
+/** Per-arm counts for a running A/B experiment on a Studio title. */
 export async function experimentArms(experimentId: string, titleId: string, metric: "play_rate" | "completion_rate") {
   const arms: Record<string, { n: number; successes: number; rate: number | null; ciLow: number | null; ciHigh: number | null }> = {};
   for (const variant of ["A", "B"]) {

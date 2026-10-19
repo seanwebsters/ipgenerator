@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "WEBSTER", template: "%s · WEBSTER" },
-  description: "Original worlds, characters and stories from WEBSTER.",
+  title: { default: "Studio", template: "%s · Studio" },
+  description: "Original worlds, characters and stories from Studio.",
 };
 
 export const viewport: Viewport = { themeColor: "#0d0b09", width: "device-width", initialScale: 1 };

@@ -33,7 +33,7 @@ export default async function Intelligence() {
           </>
         }
       />
-      <Section title="Title performance (WEBSTER WORLD, live)">
+      <Section title="Title performance (Studio, live)">
         {titles.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">

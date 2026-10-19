@@ -4,7 +4,7 @@ import { applyChange } from "./canon";
 import { resumeRun } from "./workflow";
 
 /**
- * Record a founder decision and wake whatever was waiting on it.
+ * Record a human decision and wake whatever was waiting on it.
  * Workflow approvals resume their run; experiment approvals start the test.
  */
 export async function decideApproval(

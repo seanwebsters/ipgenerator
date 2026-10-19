@@ -44,7 +44,7 @@ export default async function Watch({ params }: { params: Promise<{ slug: string
         <aside className="h-fit rounded-2xl border border-white/10 bg-card/60 p-5 text-sm">
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">About this title</div>
           <p className="mt-2 text-foreground/80">{t.disclosure}</p>
-          <Link href="/about" className="mt-3 inline-block text-xs text-brass hover:underline">How WEBSTER makes stories</Link>
+          <Link href="/about" className="mt-3 inline-block text-xs text-brass hover:underline">How Studio makes stories</Link>
         </aside>
       </div>
       {more.length > 0 && (

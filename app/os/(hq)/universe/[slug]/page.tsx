@@ -277,7 +277,7 @@ export default async function FranchiseWorkspace({ params, searchParams }: { par
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-6">
-          <Section title="Measured on WEBSTER WORLD">
+          <Section title="Measured on Studio">
             {snapshots.length ? (
               <div className="space-y-2 text-sm">
                 {snapshots.map((s) => {

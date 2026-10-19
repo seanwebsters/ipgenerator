@@ -147,7 +147,7 @@ describe("workflow runtime", () => {
 });
 
 describe("vertical slice (DEMO provider, real FFmpeg)", () => {
-  it("brief -> concepts -> greenlight -> canon -> script -> storyboard -> animatic -> QA -> approval -> WEBSTER WORLD -> analytics -> experiment", async () => {
+  it("brief -> concepts -> greenlight -> canon -> script -> storyboard -> animatic -> QA -> approval -> the Studio site -> analytics -> experiment", async () => {
     const brief = await db.brief.create({ data: { text: "Develop three original fantasy franchises and prototype the strongest.", createdBy: "test" } });
     const discovery = await startRun("ip.discovery", { briefId: brief.id, brief: brief.text, conceptCount: 3, prototypeCount: 1 }, { createdBy: "test", briefId: brief.id });
     await drain();
@@ -225,7 +225,7 @@ describe("vertical slice (DEMO provider, real FFmpeg)", () => {
     expect(await db.opportunityBrief.count()).toBe(0);
   });
 
-  it("pre-authorises WEBSTER WORLD publishing in Supervised mode within the daily limit", async () => {
+  it("pre-authorises the Studio site publishing in Supervised mode within the daily limit", async () => {
     await db.studioSettings.update({ where: { id: "studio" }, data: { autonomyMode: "SUPERVISED", autoPublishPerDay: 1 } });
     const brief = await db.brief.create({ data: { text: "cozy lighthouse stories", createdBy: "test" } });
     await startRun("ip.discovery", { briefId: brief.id, brief: brief.text, conceptCount: 2, prototypeCount: 1 }, { createdBy: "test" });

@@ -1,15 +1,15 @@
-# WEBSTER
+# Studio
 
-WEBSTER is an entertainment company built on an autonomous AI studio. Its original worlds, characters and stories are made by a durable, auditable production engine, and released to audiences on **WEBSTER WORLD**. The founder directs the studio from **WEBSTER OS**.
+Studio is an entertainment company built on an autonomous AI studio. Its original worlds, characters and stories are made by a durable, auditable production engine, and released to audiences on **Studio**. The founder directs the studio from **the Studio console**.
 
-![WEBSTER WORLD](docs/screenshots/08-world-home.png)
+![Studio](docs/screenshots/08-world-home.png)
 
 **This is a working system.** One brief goes all the way through, persisted at every step:
 
 1. Concepts are generated, scored and greenlit.
 2. The canon bible, pilot script, storyboard and an FFmpeg animatic are produced.
 3. QA reviews the result and the founder approves it.
-4. It's published to WEBSTER WORLD.
+4. It's published to Studio.
 5. Real audience events come back in.
 6. A statistically honest experiment proposal follows.
 
@@ -31,21 +31,21 @@ npm run db:seed                 # settings, founder account, agents, channels, s
 npm run dev:all                 # web app + engine worker
 ```
 
-* WEBSTER WORLD: http://localhost:3000
-* WEBSTER OS: http://localhost:3000/os. Sign in with `WEBSTER_FOUNDER_EMAIL` / `WEBSTER_FOUNDER_PASSWORD`; the seed defaults to `founder@webster.studio` / `webster-dev`.
+* Studio: http://localhost:3000
+* the Studio console: http://localhost:3000/os. Sign in with `WEBSTER_FOUNDER_EMAIL` / `WEBSTER_FOUNDER_PASSWORD`; the seed defaults to `admin@studio.local` / `studio-dev`.
 
 In production, run `npm run build && npm start`, plus one or more `npm run worker` processes.
 
 ## Deploy to Vercel
 
-The repo is one standard Next.js app, so Vercel imports it as a single project with no `vercel.json`. On Vercel, WEBSTER adapts by itself:
+The repo is one standard Next.js app, so Vercel imports it as a single project with no `vercel.json`. On Vercel, Studio adapts by itself:
 
-* **No worker process.** The engine runs inside the app (`WEBSTER_ENGINE=inline`). While someone is signed in to WEBSTER OS, it keeps calling `/api/engine/tick`, and audience traffic on WEBSTER WORLD nudges it too. To also run schedules when nobody is around, point a scheduler at `GET /api/engine/tick` with `Authorization: Bearer $CRON_SECRET`.
+* **No worker process.** The engine runs inside the app (`WEBSTER_ENGINE=inline`). While someone is signed in to the Studio console, it keeps calling `/api/engine/tick`, and audience traffic on Studio nudges it too. To also run schedules when nobody is around, point a scheduler at `GET /api/engine/tick` with `Authorization: Bearer $CRON_SECRET`.
 * **No object storage.** Media is stored in Postgres (`STORAGE_DRIVER=db`).
 * **No system FFmpeg or fonts.** It uses the bundled `ffmpeg-static` build and the DejaVu fonts in `assets/fonts`.
 * **No manual database step.** `npm run build` runs migrations and the seed before `next build`.
 
-**No database at all?** It still runs: without `DATABASE_URL`, WEBSTER starts a built-in in-memory Postgres (PGlite), migrates and seeds it, and opens WEBSTER OS without sign-in (everyone is the demo founder; sign-in comes back once a real database is connected). It's fully usable, but everything resets when the server restarts, and Vercel may run more than one instance, so treat it as a try-out. The same works locally: just leave `DATABASE_URL` unset.
+**No database at all?** It still runs: without `DATABASE_URL`, Studio starts a built-in in-memory Postgres (PGlite), migrates and seeds it, and opens the Studio console without sign-in (everyone is the demo founder; sign-in comes back once a real database is connected). It's fully usable, but everything resets when the server restarts, and Vercel may run more than one instance, so treat it as a try-out. The same works locally: just leave `DATABASE_URL` unset.
 
 To keep your data:
 
@@ -71,7 +71,7 @@ Then:
 1. Watch it on the **Studio Floor**.
 2. Greenlight two concepts in the **Approval Inbox**.
 3. Approve the two publications.
-4. Open WEBSTER WORLD.
+4. Open Studio.
 
 After people watch, use **Intelligence → Review now** to get findings and an experiment proposal.
 
@@ -86,7 +86,7 @@ Everything runs. Writing agents use a **deterministic DEMO generator**, which yo
 * It is labelled DEMO everywhere: OS, WORLD, disclosures and the database.
 * It is never published to external platforms.
 
-Storyboards and key art come from WEBSTER's in-house **procedural renderer**. It isn't AI generation, and it's labelled as such.
+Storyboards and key art come from Studio's in-house **procedural renderer**. It isn't AI generation, and it's labelled as such.
 
 Add `ANTHROPIC_API_KEY` (or store it encrypted from Settings) for real writing on `claude-opus-5-5`. Add OpenAI, ElevenLabs and YouTube credentials to enable AI imagery, licensed voices and external publishing. Missing integrations are never faked: their jobs block with setup instructions, or their publications are recorded as skipped.
 
@@ -112,8 +112,8 @@ CI runs on GitHub Actions with a Postgres service.
 ## Layout
 
 ```
-app/(world)/       WEBSTER WORLD (consumer)
-app/os/            WEBSTER OS (founder command center) + server actions
+app/(world)/       Studio (consumer)
+app/os/            the Studio console (founder command center) + server actions
 app/api/           media (Range), world events, auth
 engine/            workflows, queue, worker, metering, policy, canon, agents,
                    providers (llm/image/voice), media (ffmpeg/render), channels, analytics, learning

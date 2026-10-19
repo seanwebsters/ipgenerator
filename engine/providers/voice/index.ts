@@ -4,7 +4,7 @@ import type { TaskMeta } from "../../tasks/common";
 
 /**
  * Voice performance via ElevenLabs text-to-speech, using a voice id from the
- * studio's licensed library (ELEVENLABS_VOICE_ID). WEBSTER never clones a
+ * studio's licensed library (ELEVENLABS_VOICE_ID). Studio never clones a
  * real person's voice without documented authorisation, so only a configured
  * library voice is used. Returns null when not configured — callers fall back
  * to captions-only and record that no voice was used.

@@ -5,7 +5,7 @@ import { meter } from "../metering";
 import { uploadVideo, youtubeConfigured } from "./youtube";
 
 export const CHANNELS = [
-  { key: "webster-world", name: "WEBSTER WORLD", notes: "First-party destination. Always available." },
+  { key: "webster-world", name: "Studio", notes: "First-party destination. Always available." },
   { key: "youtube", name: "YouTube", notes: "YouTube Data API v3 resumable upload. Needs OAuth env vars." },
   { key: "tiktok", name: "TikTok", notes: "Content Posting API needs an audited app. Not implemented." },
   { key: "instagram", name: "Instagram", notes: "Graph API content publishing needs a Meta app review. Not implemented." },
@@ -22,7 +22,7 @@ export async function refreshChannels() {
     await db.channel.upsert({
       where: { key: c.key },
       create: { key: c.key, name: c.name, notes: c.notes, status: channelStatus(c.key), lastCheckedAt: new Date() },
-      update: { status: channelStatus(c.key), lastCheckedAt: new Date(), notes: c.notes },
+      update: { name: c.name, status: channelStatus(c.key), lastCheckedAt: new Date(), notes: c.notes },
     });
   }
 }

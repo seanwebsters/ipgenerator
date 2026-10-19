@@ -1,5 +1,5 @@
 // Phase 2 through the real UI: development cycle -> strategy decision ->
-// episode 2 + comic + interactive -> publish -> play/read on WEBSTER WORLD ->
+// episode 2 + comic + interactive -> publish -> play/read on Studio ->
 // canon change with downstream review. Requires a running app + worker and
 // at least one released franchise (run scripts/slice.mjs first).
 // Usage: node scripts/phase2.mjs [baseUrl]
@@ -33,8 +33,8 @@ const pendingOf = async (badge) => {
 };
 
 await go("/os/login");
-await page.fill("#email", process.env.WEBSTER_FOUNDER_EMAIL ?? "founder@webster.studio");
-await page.fill("#password", process.env.WEBSTER_FOUNDER_PASSWORD ?? "webster-dev");
+await page.fill("#email", process.env.WEBSTER_FOUNDER_EMAIL ?? "admin@studio.local");
+await page.fill("#password", process.env.WEBSTER_FOUNDER_PASSWORD ?? "studio-dev");
 await page.click("button:has-text('Enter the studio')");
 await page.waitForURL(/\/os$/);
 
@@ -77,7 +77,7 @@ await waitFor("PLAY title live", async () => {
   return (await page.locator("a[href^='/play/']").count()) > 0;
 });
 
-// 4. WEBSTER WORLD: play to an ending, read the comic.
+// 4. Studio: play to an ending, read the comic.
 await go("/");
 await shot("33-world-home-phase2", { fullPage: true });
 await go("/play");

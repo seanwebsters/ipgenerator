@@ -13,7 +13,7 @@ export async function seedStudio(founder: { email: string; password: string; nam
   await db.studioSettings.upsert({ where: { id: "studio" }, create: { id: "studio" }, update: {} });
   const existing = await db.user.findUnique({ where: { email: founder.email } });
   if (!existing) {
-    await db.user.create({ data: { email: founder.email, name: founder.name ?? "Founder", role: "FOUNDER", passwordHash: hashPassword(founder.password) } });
+    await db.user.create({ data: { email: founder.email, name: founder.name ?? "Admin", role: "FOUNDER", passwordHash: hashPassword(founder.password) } });
   }
   await seedAgents();
   await refreshChannels();

@@ -15,12 +15,12 @@ const LEARNING_DELAY_MIN = () => Number(process.env.LEARNING_REVIEW_DELAY_MIN ??
 
 /** Disclosure text derived from asset provenance, never hand-written. */
 export function buildDisclosure(input: { writingProvider: string; writingIsDemo: boolean; assets: { kind: string; aiGenerated: boolean; provider: string }[]; format: string }) {
-  const writing = input.writingIsDemo ? "DEMO placeholder writing from WEBSTER's deterministic demo generator" : `AI-assisted writing (${input.writingProvider})`;
+  const writing = input.writingIsDemo ? "DEMO placeholder writing from Studio's deterministic demo generator" : `AI-assisted writing (${input.writingProvider})`;
   const visualKinds = ["STORYBOARD_FRAME", "KEY_ART", "POSTER", "DOCUMENT"];
-  const art = input.assets.some((a) => visualKinds.includes(a.kind) && a.aiGenerated) ? "AI-generated art" : "art rendered by WEBSTER's in-house procedural renderer";
+  const art = input.assets.some((a) => visualKinds.includes(a.kind) && a.aiGenerated) ? "AI-generated art" : "art rendered by Studio's in-house procedural renderer";
   const hasAudio = input.assets.some((a) => a.kind === "AUDIO");
   const audio = !hasAudio ? null : input.assets.some((a) => a.kind === "AUDIO" && a.aiGenerated) ? "synthetic voices from a licensed voice library" : "an in-house procedural temp score";
-  return `Made by WEBSTER with ${writing}, ${art}${audio ? ` and ${audio}` : ""}. ${input.format}`;
+  return `Made by Studio with ${writing}, ${art}${audio ? ` and ${audio}` : ""}. ${input.format}`;
 }
 
 const releaseIdOf = (ctx: { state: Record<string, unknown>; outputs: Record<string, unknown> }) =>

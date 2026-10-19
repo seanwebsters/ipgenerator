@@ -10,7 +10,7 @@ import { fireSchedules, lease } from "./queue";
 import { execute, OWNER } from "./runner";
 
 /**
- * WEBSTER ENGINE worker. Run any number of these (`npm run worker`).
+ * Studio engine worker. Run any number of these (`npm run worker`).
  * Leases due jobs up to the configured concurrency, heartbeats long jobs,
  * turns schedules into jobs, and shuts down gracefully on SIGINT/SIGTERM.
  */

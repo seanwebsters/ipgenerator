@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* WEBSTER brand tokens: warm dark neutrals, ember + brass accents. */
+/* Studio brand tokens: warm dark neutrals, ember + brass accents. */
 :root {
   --background: #0d0b09;
   --foreground: #efe6d6;

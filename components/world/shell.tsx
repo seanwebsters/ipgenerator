@@ -40,9 +40,9 @@ export function WorldShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-4 py-10 text-sm text-muted-foreground sm:px-8 md:flex-row md:items-center md:justify-between">
           <Wordmark />
           <div className="flex flex-wrap gap-5">
-            <Link href="/about" className="hover:text-foreground">How WEBSTER makes stories</Link>
+            <Link href="/about" className="hover:text-foreground">How Studio makes stories</Link>
             <Link href="/profile" className="hover:text-foreground">Profile & maturity settings</Link>
-            <span>© {new Date().getFullYear()} WEBSTER</span>
+            <span>© {new Date().getFullYear()} Studio</span>
           </div>
         </div>
       </footer>

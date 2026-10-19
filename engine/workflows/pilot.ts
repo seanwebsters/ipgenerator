@@ -515,7 +515,7 @@ export const pilot: WorkflowDef<PilotInput> = {
   ],
   async onComplete(run) {
     const f = run.franchiseId ? await db.franchise.findUnique({ where: { id: run.franchiseId } }) : null;
-    await db.notification.create({ data: { kind: "release", title: `${f?.title ?? "Pilot"} pilot is live on WEBSTER WORLD`, body: "Real audience data will be ingested as viewers watch.", href: f ? `/os/universe/${f.slug}` : "/os" } });
+    await db.notification.create({ data: { kind: "release", title: `${f?.title ?? "Pilot"} pilot is live on Studio`, body: "Real audience data will be ingested as viewers watch.", href: f ? `/os/universe/${f.slug}` : "/os" } });
   },
 };
 

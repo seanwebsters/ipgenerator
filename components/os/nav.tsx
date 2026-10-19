@@ -13,7 +13,7 @@ export const OS_NAV = [
   { href: "/os/calendar", label: "Content Calendar", icon: CalendarDays },
   { href: "/os/intelligence", label: "Intelligence", icon: LineChart },
   { href: "/os/commercial", label: "Commercial", icon: Coins },
-  { href: "/os/copilot", label: "Founder Copilot", icon: MessageSquareText },
+  { href: "/os/copilot", label: "Copilot", icon: MessageSquareText },
   { href: "/os/approvals", label: "Approval Inbox", icon: Inbox },
   { href: "/os/settings", label: "Settings", icon: Settings },
 ];

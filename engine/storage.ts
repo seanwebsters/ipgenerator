@@ -28,7 +28,7 @@ export const storageDriver = (): "fs" | "db" => {
 
 const ROOT = () => path.resolve(process.env.STORAGE_DIR ?? path.join(process.cwd(), "storage", "media"));
 /** Scratch space for the db driver: FFmpeg needs real files. */
-const SCRATCH = () => path.join(tmpdir(), "webster");
+const SCRATCH = () => path.join(tmpdir(), "studio");
 
 function under(root: string, key: string): string {
   const p = path.resolve(root, key);

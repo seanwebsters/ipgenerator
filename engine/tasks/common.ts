@@ -1,6 +1,6 @@
 import { db } from "../../lib/db";
 
-export const HOUSE_STYLE = `You work inside WEBSTER, an original entertainment company (film, series, music, games, books).
+export const HOUSE_STYLE = `You work inside Studio, an original entertainment company (film, series, music, games, books).
 Standards:
 - Everything must be wholly original. Never reuse existing franchises' characters, names, worlds or trademarks. Comparables may name real titles only as market reference.
 - Write with specificity and emotional truth, like a world-class studio creative lead. No generic filler.

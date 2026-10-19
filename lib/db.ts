@@ -13,7 +13,7 @@ import { PrismaClient } from "../generated/prisma/client";
  * lasts only as long as the server process (see `embeddedDb`).
  */
 export const embeddedDb = () => !process.env.DATABASE_URL;
-export const DEMO_FOUNDER = { email: "founder@webster.studio", password: "webster-demo" };
+export const DEMO_FOUNDER = { email: "admin@studio.local", password: "studio-demo" };
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 const seeding = new AsyncLocalStorage<true>();
@@ -31,7 +31,7 @@ function create(): PrismaClient {
   const seed = async () => {
     await migrated;
     const { seedStudio } = await import("./seed");
-    await seedStudio({ ...DEMO_FOUNDER, name: "Founder (demo)" });
+    await seedStudio({ ...DEMO_FOUNDER, name: "Demo" });
   };
   // Every operation waits for the seed; the seed's own queries skip the wait.
   return base.$extends({

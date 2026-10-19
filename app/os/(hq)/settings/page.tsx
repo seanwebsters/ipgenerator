@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const MODES = [
   { key: "ASSISTED", title: "Assisted", text: "Approval for all publishing, spending and experiments." },
-  { key: "SUPERVISED", title: "Supervised", text: "Automatic production; pre-authorised publishing to WEBSTER WORLD within the daily limit; internal experiments run automatically." },
+  { key: "SUPERVISED", title: "Supervised", text: "Automatic production; pre-authorised publishing to Studio within the daily limit; internal experiments run automatically." },
   { key: "HIGH", title: "High autonomy", text: "Bounded portfolio experimentation under strict policies. External publishing and DEMO content still need approval; new IP, rights and strategy always do." },
 ];
 
@@ -43,7 +43,7 @@ export default async function Settings() {
   ]);
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Settings" title="Guardrails, budgets & integrations" intro="Founder-only. Secrets are encrypted server-side (AES-256-GCM) and never sent back to the browser." />
+      <PageHeader eyebrow="Settings" title="Guardrails, budgets & integrations" intro="Admin only. Secrets are encrypted server-side (AES-256-GCM) and never sent back to the browser." />
 
       <form action={saveSettings} className="space-y-6">
         <Section title="Autonomy mode">

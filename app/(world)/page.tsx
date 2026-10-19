@@ -23,7 +23,7 @@ export default async function Discover() {
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.35em] text-brass">Coming soon</div>
           <h1 className="font-display mt-4 text-5xl sm:text-7xl">The first worlds are being made.</h1>
-          <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">New stories from WEBSTER will appear here as soon as they are released.</p>
+          <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">New stories from Studio will appear here as soon as they are released.</p>
         </div>
       </main>
     );
@@ -69,7 +69,7 @@ export default async function Discover() {
           ))}
         </Row>
       )}
-      <Row title="New from WEBSTER">
+      <Row title="New from Studio">
         {watch.map((t) => (
           <TitleCard key={t.id} t={toCard(t)} size="lg" />
         ))}
